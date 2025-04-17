@@ -156,7 +156,7 @@ const Dashboard = () => {
 
     return (
         <div className="min-h-screen bg-gray-100 p-6">
-            <h1 className="text-2xl font-bold text-blue-800 mb-6">Dashboard Orçamentos</h1>
+            <h1 className="text-2xl font-bold text-blue-800 mb-6">Orçamentos</h1>
             <div className="mb-4">
                 <input
                     type="text"

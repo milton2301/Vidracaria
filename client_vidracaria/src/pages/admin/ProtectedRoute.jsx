@@ -8,7 +8,7 @@ const ProtectedRoute = () => {
     return <Navigate to="/admin/login" />;
   }
 
-  return <Outlet />; // <-- ESSENCIAL
+  return <Outlet />;
 };
 
 export default ProtectedRoute;

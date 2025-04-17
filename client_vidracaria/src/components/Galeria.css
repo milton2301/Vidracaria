@@ -1,0 +1,22 @@
+.slick-slide {
+    display: flex !important;
+    justify-content: center;
+    align-items: center;
+    height: auto;
+  }
+  
+  .slick-slide > div {
+    width: 100%;
+    padding: 0 8px;
+    box-sizing: border-box;
+  }
+  
+  .slick-slide img {
+    width: 100%;
+    height: 300px;           /* Altura fixa para padronizar */
+    object-fit: cover;       /* Preenche o espaço mantendo o corte proporcional */
+    border-radius: 0.5rem;
+    box-shadow: 0 0 10px rgba(0,0,0,0.1);
+  }
+  
+  

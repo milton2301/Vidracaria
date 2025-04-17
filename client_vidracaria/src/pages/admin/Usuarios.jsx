@@ -1,10 +1,15 @@
 import React, { useEffect, useState } from 'react';
 import Swal from 'sweetalert2';
-import { FaBan, FaUnlock, FaToggleOn, FaToggleOff } from 'react-icons/fa';
+import Modal from 'react-modal';
+import { FaBan, FaUnlock, FaToggleOn, FaToggleOff, FaPlus } from 'react-icons/fa';
+
+Modal.setAppElement('#root');
 
 const Usuarios = () => {
   const [usuarios, setUsuarios] = useState([]);
   const [filtro, setFiltro] = useState('');
+  const [modalAberto, setModalAberto] = useState(false);
+  const [form, setForm] = useState({ nome: '', email: '' });
 
   const carregarUsuarios = async () => {
     try {
@@ -44,6 +49,41 @@ const Usuarios = () => {
     }
   };
 
+  const handleInput = (e) => {
+    setForm({ ...form, [e.target.name]: e.target.value });
+  };
+
+  const cadastrarUsuario = async (e) => {
+    e.preventDefault();
+
+    try {
+      const res = await fetch('http://localhost:4000/usuarios', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(form),
+      });
+
+      const data = await res.json();
+
+      if (res.ok) {
+        Swal.fire({
+          icon: 'success',
+          title: 'Usuário cadastrado!',
+          text: 'A senha padrão foi enviada por e-mail.',
+          confirmButtonColor: '#2563eb'
+        });
+        setForm({ nome: '', email: '' });
+        setModalAberto(false);
+        carregarUsuarios();
+      } else {
+        Swal.fire('Erro', data.error || 'Erro ao cadastrar.', 'error');
+      }
+    } catch (err) {
+      console.error(err);
+      Swal.fire('Erro', 'Erro de conexão com o servidor.', 'error');
+    }
+  };
+
   const usuariosFiltrados = usuarios.filter((u) => {
     const termo = filtro.toLowerCase();
     return (
@@ -54,7 +94,15 @@ const Usuarios = () => {
 
   return (
     <div className="p-6 bg-gray-100 min-h-screen">
-      <h2 className="text-2xl font-bold text-blue-800 mb-4">Gerenciar Usuários</h2>
+      <div className="flex justify-between items-center mb-4">
+        <h2 className="text-2xl font-bold text-blue-800">Gerenciar Usuários</h2>
+        <button
+          onClick={() => setModalAberto(true)}
+          className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded shadow inline-flex items-center"
+        >
+          <FaPlus className="mr-2" /> Novo Usuário
+        </button>
+      </div>
 
       <div className="mb-4">
         <input
@@ -117,6 +165,52 @@ const Usuarios = () => {
           </tbody>
         </table>
       </div>
+
+      {/* Modal de cadastro */}
+      <Modal
+        isOpen={modalAberto}
+        onRequestClose={() => setModalAberto(false)}
+        className="w-full max-w-2xl h-[50vh] mx-auto mt-10 bg-white rounded-lg shadow-lg p-8 overflow-y-auto outline-none"
+        overlayClassName="fixed inset-0 bg-blue-200 bg-opacity-60 backdrop-blur-sm flex justify-center items-start"
+      >
+        <h2 className="text-xl font-bold mb-4 text-blue-700">Novo Usuário</h2>
+        <form onSubmit={cadastrarUsuario} className="space-y-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Nome</label>
+            <input
+              type="text"
+              name="nome"
+              required
+              value={form.nome}
+              onChange={handleInput}
+              placeholder="Nome completo"
+              className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:outline-none"
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
+            <input
+              type="email"
+              name="email"
+              required
+              value={form.email}
+              onChange={handleInput}
+              placeholder="email@exemplo.com"
+              className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:outline-none"
+            />
+          </div>
+
+          <div className="flex justify-end">
+            <button
+              type="submit"
+              className="bg-blue-600 text-white font-semibold px-5 py-2 rounded hover:bg-blue-700"
+            >
+              Cadastrar
+            </button>
+          </div>
+        </form>
+      </Modal>
     </div>
   );
 };

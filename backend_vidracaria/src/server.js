@@ -7,9 +7,30 @@ import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
 import { enviarEmail } from './utils/emailService.js';
 import { PDFDocument, rgb, StandardFonts, degrees } from 'pdf-lib';
+import multer from 'multer';
+import fs from 'fs';
+import path from 'path';
 
+// Caminho da pasta de uploads
+const pastaUploads = path.join('uploads');
 
+// Cria a pasta se não existir
+if (!fs.existsSync(pastaUploads)) {
+  fs.mkdirSync(pastaUploads, { recursive: true });
+}
 
+// Configuração do Multer
+const storage = multer.diskStorage({
+  destination: (req, file, cb) => {
+    cb(null, pastaUploads);
+  },
+  filename: (req, file, cb) => {
+    const nomeUnico = `${Date.now()}-${file.originalname}`;
+    cb(null, nomeUnico);
+  }
+});
+
+const upload = multer({ storage });
 
 dotenv.config();
 
@@ -17,6 +38,13 @@ const JWT_SECRET = process.env.JWT_SECRET || 'segredo-super-seguro';
 
 const app = express();
 const prisma = new PrismaClient();
+
+// Cria a pasta /uploads se não existir
+const uploadsDir = path.resolve('uploads');
+if (!fs.existsSync(uploadsDir)) {
+  fs.mkdirSync(uploadsDir, { recursive: true });
+}
+app.use('/uploads', express.static('uploads'));
 
 app.use(cors());
 app.use(express.json());
@@ -389,6 +417,201 @@ app.get('/orcamentos/:id/pdf', async (req, res) => {
     res.status(500).send('Erro ao gerar PDF');
   }
 });
+
+
+/*TRATAMENTO DAS IMAGENS */
+app.post('/imagens', upload.single('imagem'), async (req, res) => {
+  const { tipo, descricao } = req.body;
+
+  if (!req.file) {
+    return res.status(400).json({ error: 'Arquivo de imagem é obrigatório.' });
+  }
+
+  try {
+    const novaImagem = await prisma.imagem.create({
+      data: {
+        tipo,
+        descricao,
+        caminho: req.file.filename
+      }
+    });
+
+    res.status(201).json(novaImagem);
+  } catch (err) {
+    console.error('Erro ao salvar imagem:', err);
+    res.status(500).json({ error: 'Erro ao salvar imagem' });
+  }
+});
+
+// GET /imagens
+app.get('/imagens', async (req, res) => {
+  try {
+    const imagens = await prisma.imagem.findMany({ orderBy: { id: 'desc' } });
+    res.json(imagens);
+  } catch (error) {
+    console.error('Erro ao buscar imagens:', error);
+    res.status(500).json({ error: 'Erro ao buscar imagens' });
+  }
+});
+
+// DELETE /imagens/:id
+app.delete('/imagens/:id', async (req, res) => {
+  const id = parseInt(req.params.id);
+
+  try {
+    const imagem = await prisma.imagem.findUnique({ where: { id } });
+
+    if (!imagem) {
+      return res.status(404).json({ error: 'Imagem não encontrada' });
+    }
+
+    // Remover arquivo físico
+    const caminhoFisico = path.join('uploads', imagem.caminho);
+    if (fs.existsSync(caminhoFisico)) {
+      fs.unlinkSync(caminhoFisico);
+    }
+
+    // Remover registro do banco
+    await prisma.imagem.delete({ where: { id } });
+
+    res.status(200).json({ mensagem: 'Imagem removida com sucesso' });
+  } catch (error) {
+    console.error('Erro ao remover imagem:', error);
+    res.status(500).json({ error: 'Erro ao remover imagem' });
+  }
+});
+
+/*TRATAMENTO DAS IMAGENS */
+
+
+/* SERVIÇOS */
+// GET /servicos
+app.get('/servicos', async (req, res) => {
+  try {
+    const servicos = await prisma.servico.findMany({
+      where: { ativo: true },
+      orderBy: { id: 'desc' },
+    });
+    res.json(servicos);
+  } catch (err) {
+    console.error('Erro ao buscar serviços:', err);
+    res.status(500).json({ error: 'Erro ao buscar serviços' });
+  }
+});
+
+// POST /servicos
+app.post('/servicos', async (req, res) => {
+  const { titulo, descricao, icone } = req.body;
+
+  if (!titulo || !descricao) {
+    return res.status(400).json({ error: 'Título e descrição são obrigatórios.' });
+  }
+
+  try {
+    const novo = await prisma.servico.create({
+      data: { titulo, descricao, icone }
+    });
+
+    res.status(201).json(novo);
+  } catch (err) {
+    console.error('Erro ao criar serviço:', err);
+    res.status(500).json({ error: 'Erro ao criar serviço' });
+  }
+});
+
+// PUT /servicos/:id (editar)
+app.put('/servicos/:id', async (req, res) => {
+  const { id } = req.params;
+  const { titulo, descricao, icone, ativo } = req.body;
+
+  try {
+    const servico = await prisma.servico.update({
+      where: { id: parseInt(id) },
+      data: { titulo, descricao, icone, ativo }
+    });
+
+    res.json(servico);
+  } catch (err) {
+    console.error('Erro ao atualizar serviço:', err);
+    res.status(500).json({ error: 'Erro ao atualizar serviço' });
+  }
+});
+
+app.delete('/servicos/:id', async (req, res) => {
+  const { id } = req.params;
+
+  try {
+    await prisma.servico.delete({ where: { id: parseInt(id) } });
+    res.status(200).json({ mensagem: 'Serviço removido com sucesso' });
+  } catch (err) {
+    console.error('Erro ao excluir serviço:', err);
+    res.status(500).json({ error: 'Erro ao excluir serviço' });
+  }
+});
+
+/* SERVIÇOS */
+
+
+/*CONFIGURAÇÕES DO TEXTO*/
+// GET todas as configurações
+app.get('/configuracoes', async (req, res) => {
+  try {
+    const dados = await prisma.configuracaoSite.findMany();
+    res.json(dados);
+  } catch (err) {
+    console.error('Erro ao buscar configurações:', err);
+    res.status(500).json({ error: 'Erro ao buscar configurações' });
+  }
+});
+
+// GET configuração por chave
+app.get('/configuracoes/:chave', async (req, res) => {
+  const { chave } = req.params;
+  try {
+    const config = await prisma.configuracaoSite.findUnique({ where: { chave } });
+    res.json(config);
+  } catch (err) {
+    console.error('Erro ao buscar configuração:', err);
+    res.status(500).json({ error: 'Erro ao buscar configuração' });
+  }
+});
+
+// POST cria ou atualiza configuração
+app.post('/configuracoes', async (req, res) => {
+  const { chave, titulo, subtitulo, texto } = req.body;
+
+  try {
+    const existente = await prisma.configuracaoSite.findUnique({ where: { chave } });
+
+    if (existente) {
+      const atualizado = await prisma.configuracaoSite.update({
+        where: { chave },
+        data: {
+          titulo,
+          subtitulo,
+          texto,
+          atualizado_em: new Date(),
+        },
+      });
+      res.json(atualizado);
+    } else {
+      const novo = await prisma.configuracaoSite.create({
+        data: {
+          chave,
+          titulo,
+          subtitulo,
+          texto,
+        },
+      });
+      res.status(201).json(novo);
+    }
+  } catch (err) {
+    console.error('Erro ao salvar configuração:', err);
+    res.status(500).json({ error: 'Erro ao salvar configuração' });
+  }
+});
+
+/*CONFIGURAÇÕES DO TEXTO*/
 
 const PORT = process.env.PORT || 4000;
 app.listen(PORT, () => console.log(`Servidor rodando na porta ${PORT}`));
