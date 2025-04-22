@@ -1,6 +1,6 @@
 import React from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
-import { FaHome, FaUser, FaSignOutAlt, FaFile, FaCogs, FaTerminal } from 'react-icons/fa';
+import { FaHome, FaUser, FaSignOutAlt, FaFile, FaCogs, FaTerminal, FaGlassCheers } from 'react-icons/fa';
 
 const AdminMenu = () => {
   const navigate = useNavigate();
@@ -32,6 +32,9 @@ const AdminMenu = () => {
         </NavLink>
         <NavLink to="/admin/servicos" className={linkClasses}>
           <FaCogs /> Serviços
+        </NavLink>
+        <NavLink to="/admin/vidros" className={linkClasses}>
+          <FaGlassCheers/> Vidros
         </NavLink>
         <NavLink to="/admin/configuracoes" className={linkClasses}>
           <FaTerminal /> Gerais

@@ -1,21 +1,26 @@
 // src/pages/admin/Dashboard.jsx
 import React, { useEffect, useState } from 'react';
 import Swal from 'sweetalert2';
-import { FaEdit } from 'react-icons/fa';
-import { FaWhatsapp, FaDownload } from 'react-icons/fa';
+import { FaEdit, FaWhatsapp, FaDownload, FaPlus, FaEye } from 'react-icons/fa';
+import OrcamentoModal from '../../components/OrcamentoModal';
+import PropostasModal from './PropostasModal';
 
 const Dashboard = () => {
     const [orcamentos, setOrcamentos] = useState([]);
     const [filtro, setFiltro] = useState('');
     const [statusSelecionados, setStatusSelecionados] = useState(['Novo', 'Em andamento']);
     const [loadingPdfId, setLoadingPdfId] = useState(null);
-
+    const [modalAberto, setModalAberto] = useState(false);
+    const [orcamentoSelecionado, setOrcamentoSelecionado] = useState(null);
+    const [modalPropostasAberto, setModalPropostasAberto] = useState(false);
+    const [idOrcamento, setIdOrcamento] = useState([]);
 
     const fetchOrcamentos = async () => {
         try {
             const res = await fetch('http://localhost:4000/orcamentos');
             if (!res.ok) throw new Error('Erro ao buscar dados');
             const data = await res.json();
+            console.log(data);
             setOrcamentos(data);
         } catch (error) {
             console.error(error);
@@ -27,103 +32,133 @@ const Dashboard = () => {
         fetchOrcamentos();
     }, []);
 
-
-    const abrirModalGerenciar = (orcamento) => {
+    const abrirModalGerenciar = async (orcamento) => {
         if (orcamento.status === 'Concluído') {
-            Swal.fire({
-                icon: 'info',
-                title: 'Orçamento concluído',
-                text: 'Este orçamento já foi finalizado e não pode ser editado.',
-                confirmButtonColor: '#2563eb',
-            });
-            return;
+          Swal.fire({
+            icon: 'info',
+            title: 'Orçamento concluído',
+            text: 'Este orçamento já foi finalizado e não pode ser editado.',
+            confirmButtonColor: '#2563eb',
+          });
+          return;
         }
+      
+        // Buscar tipos de vidro
+        let tiposVidro = [];
+        try {
+          const res = await fetch('http://localhost:4000/tiposvidro');
+          tiposVidro = await res.json();
+        } catch (err) {
+          console.error('Erro ao buscar tipos de vidro:', err);
+        }
+      
+        // Calcular valor se não estiver definido
+        let valorCalculado = '';
+        if (orcamento.altura && orcamento.largura && orcamento.tipoVidroId) {
+          const tipoVidro = tiposVidro.find(tv => tv.id === orcamento.tipoVidroId);
+          if (tipoVidro) {
+            const area = orcamento.altura * orcamento.largura;
+            const valor = area * tipoVidro.valorM2;
+            valorCalculado = valor.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+          }
+        }
+      
         Swal.fire({
-            title: `<span class="text-blue-700 text-xl font-semibold">Editar Orçamento #${orcamento.id}</span>`,
-            html: `
-              <div class="flex flex-col gap-4 text-left text-gray-700 font-[500]">
-                <div>
-                  <label class="block text-sm mb-1">Observação</label>
-                  <textarea id="obs" rows="4" class="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 transition resize-none">${orcamento.observacaoAdmin || ''}</textarea>
-                </div>
-                <div>
-                  <label class="block text-sm mb-1">Valor do Orçamento</label>
-                  <input id="valor" type="text" class="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 transition" value="${orcamento.valor || ''}" />
-                </div>
-                <div>
-                  <label class="block text-sm mb-1">Status</label>
-                  <select id="status" class="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 transition">
-                    <option value="Novo" ${orcamento.status === 'Novo' ? 'selected' : ''}>Novo</option>
-                    <option value="Em andamento" ${orcamento.status === 'Em andamento' ? 'selected' : ''}>Em andamento</option>
-                    <option value="Concluído" ${orcamento.status === 'Concluído' ? 'selected' : ''}>Concluído</option>
-                  </select>
-                </div>
-                <div>
-                  <label class="block text-sm mb-1">Data de Agendamento</label>
-                  <input id="data" type="datetime-local" class="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 transition"
-                    value="${orcamento.dataAgendamento ? new Date(orcamento.dataAgendamento).toISOString().slice(0, 16) : ''}" />
-                </div>
+          title: `<span class="text-blue-700 text-xl font-semibold">Editar Orçamento #${orcamento.id}</span>`,
+          idth: '700px',
+          html: `
+            <div class="flex flex-col gap-4 text-left text-gray-700 font-[500]">
+              <div>
+                <label class="block text-sm mb-1">Observação</label>
+                <textarea id="obs" rows="4" class="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 transition resize-none">${orcamento.observacaoAdmin || ''}</textarea>
               </div>
-            `,
-            focusConfirm: false,
-            confirmButtonText: 'Salvar',
-            cancelButtonText: 'Cancelar',
-            showCancelButton: true,
-            customClass: {
-                popup: 'p-6 rounded-xl shadow-xl',
-                confirmButton: 'bg-indigo-600 text-white px-6 py-2 rounded-md hover:bg-indigo-700 transition',
-                cancelButton: 'bg-gray-200 text-gray-700 px-6 py-2 rounded-md hover:bg-gray-300 transition',
-            },
-            didOpen: () => {
-                const valorInput = document.getElementById('valor');
-                valorInput.addEventListener('input', (e) => {
-                    let value = e.target.value;
-                    value = value.replace(/\D/g, '');
-                    value = (Number(value) / 100).toLocaleString('pt-BR', {
-                        style: 'currency',
-                        currency: 'BRL',
-                    });
-                    e.target.value = value;
-                });
-            },
-            preConfirm: () => {
-                const obs = document.getElementById('obs').value;
-                const data = document.getElementById('data').value;
-                const status = document.getElementById('status').value;
-                const valor = document.getElementById('valor').value;
-                return { obs, data, status, valor };
-            },
+              <div>
+                <label class="block text-sm mb-1">Valor Vidros (Calculo com base no tipo de vidro)</label>
+                <input disabled id="valorCalculado" type="text" class="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 transition" value="${valorCalculado}" />
+              </div>
+              <div>
+                <label class="block text-sm mb-1">Valor Final do Orçamento</label>
+                <input id="valor" type="text" class="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 transition" value="${orcamento.valor.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }) || ''}" />
+              </div>
+              <div>
+                <label class="block text-sm mb-1">Status</label>
+                <select id="status" class="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 transition">
+                  <option value="Novo" ${orcamento.status === 'Novo' ? 'selected' : ''}>Novo</option>
+                  <option value="Em andamento" ${orcamento.status === 'Em andamento' ? 'selected' : ''}>Em andamento</option>
+                  <option value="Concluído" ${orcamento.status === 'Concluído' ? 'selected' : ''}>Concluído</option>
+                </select>
+              </div>
+              <div>
+                <label class="block text-sm mb-1">Data de Agendamento</label>
+                <input id="data" type="datetime-local" class="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 transition"
+                  value="${orcamento.dataAgendamento ? new Date(orcamento.dataAgendamento).toISOString().slice(0, 16) : ''}" />
+              </div>
+            </div>
+          `,
+          focusConfirm: false,
+          confirmButtonText: 'Salvar',
+          cancelButtonText: 'Cancelar',
+          showCancelButton: true,
+          customClass: {
+            popup: 'p-6 rounded-xl shadow-xl',
+            confirmButton: 'bg-indigo-600 text-white px-6 py-2 rounded-md hover:bg-indigo-700 transition',
+            cancelButton: 'bg-gray-200 text-gray-700 px-6 py-2 rounded-md hover:bg-gray-300 transition',
+          },
+          didOpen: () => {
+            const valorInput = document.getElementById('valor');
+            valorInput.addEventListener('input', (e) => {
+              let value = e.target.value;
+              value = value.replace(/\D/g, '');
+              value = (Number(value) / 100).toLocaleString('pt-BR', {
+                style: 'currency',
+                currency: 'BRL',
+              });
+              e.target.value = value;
+            });
+          },
+          preConfirm: () => {
+            const obs = document.getElementById('obs').value;
+            const data = document.getElementById('data').value;
+            const status = document.getElementById('status').value;
+            const valor = document.getElementById('valor').value;
+            return { obs, data, status, valor };
+          },
         }).then(async (result) => {
-            if (result.isConfirmed) {
-                try {
-                    const res = await fetch(`http://localhost:4000/orcamentos/${orcamento.id}`, {
-                        method: 'PUT',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({
-                            observacaoAdmin: result.value.obs,
-                            dataAgendamento: result.value.data || null,
-                            status: result.value.status,
-                            valor: result.value.valor,
-                        }),
-                    });
-
-                    if (res.ok) {
-                        Swal.fire({
-                            icon: 'success',
-                            title: 'Atualizado!',
-                            text: 'Informações salvas com sucesso.',
-                            confirmButtonColor: '#2563eb',
-                        });
-                        fetchOrcamentos();
-                    } else {
-                        Swal.fire('Erro', 'Falha ao salvar no servidor.', 'error');
-                    }
-                } catch (err) {
-                    Swal.fire('Erro', 'Erro de conexão.', 'error');
-                }
+          if (result.isConfirmed) {
+            try {
+              const res = await fetch(`http://localhost:4000/orcamentos/${orcamento.id}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                  observacaoAdmin: result.value.obs,
+                  dataAgendamento: result.value.data || null,
+                  status: result.value.status,
+                  valor: result.value.valor,
+                }),
+              });
+      
+              if (res.ok) {
+                Swal.fire({
+                  icon: 'success',
+                  title: 'Atualizado!',
+                  text: 'Informações salvas com sucesso.',
+                  confirmButtonColor: '#2563eb',
+                });
+                fetchOrcamentos();
+              } else {
+                Swal.fire('Erro', 'Falha ao salvar no servidor.', 'error');
+              }
+            } catch (err) {
+              Swal.fire('Erro', 'Erro de conexão.', 'error');
             }
+          }
         });
-
+      };
+      
+    
+    const abrirModalNovaProposta = (orcamento) => {
+        setOrcamentoSelecionado(orcamento);
+        setModalAberto(true);
     };
 
     const limparTelefone = (numero) => numero.replace(/\D/g, '');
@@ -151,8 +186,6 @@ const Dashboard = () => {
             setLoadingPdfId(null);
         }
     };
-
-
 
     return (
         <div className="min-h-screen bg-gray-100 p-6">
@@ -184,7 +217,6 @@ const Dashboard = () => {
                         </label>
                     ))}
                 </div>
-
             </div>
 
             <div className="overflow-auto bg-white rounded shadow p-4">
@@ -198,21 +230,19 @@ const Dashboard = () => {
                                 <th className="py-2 px-3">Datas</th>
                                 <th className="py-2 px-3">Status</th>
                                 <th className="py-2 px-3">Valor Orçamento</th>
-                                <th className="py-2 px-3">Ações</th>
+                                <th className="py-2 px-3 text-center">Ações</th>
                             </tr>
                         </thead>
                         <tbody>
                             {orcamentos
                                 .filter((item) => {
                                     const termo = filtro.toLowerCase();
-
-                                    const correspondeBusca =
+                                    return (
                                         item.nome.toLowerCase().includes(termo) ||
                                         item.email.toLowerCase().includes(termo) ||
                                         item.telefone.toLowerCase().includes(termo) ||
-                                        item.servico.toLowerCase().includes(termo);
-                                    const correspondeStatus = statusSelecionados.includes(item.status);
-                                    return correspondeBusca && correspondeStatus;
+                                        (item.servico?.titulo || '').toLowerCase().includes(termo)
+                                    ) && statusSelecionados.includes(item.status);
                                 })
                                 .map((item, idx) => (
                                     <tr key={idx} className="border-t hover:bg-gray-50 align-top text-sm">
@@ -225,89 +255,76 @@ const Dashboard = () => {
                                                         href={gerarLinkWhatsapp(item.telefone, item.nome)}
                                                         target="_blank"
                                                         rel="noopener noreferrer"
-                                                        title="WhatsApp"
                                                         className="inline-flex items-center gap-1 text-green-600 hover:underline"
                                                     >
                                                         <FaWhatsapp className="text-md" />
                                                         {item.telefone}
                                                     </a>
-                                                )}</div>
+                                                )}
+                                            </div>
                                         </td>
                                         <td className="px-3 py-2">
-                                            <div>{item.servico}</div>
-                                            <div className="text-xs text-gray-500">{item.tipoVidro || '-'}</div>
+                                            <div>{item.servico?.titulo || '-'}</div>
+                                            <div className="text-xs text-gray-500">{item.tipoVidro?.nome || '-'}</div>
                                             <div className="text-xs text-gray-500">
-                                                {item.altura && item.largura ? `${item.altura} cm x ${item.largura} cm` : 'x cm'}
+                                                {item.altura && item.largura ? `${item.altura} cm x ${item.largura} cm` : '-'}
                                             </div>
                                         </td>
                                         <td className="px-3 py-2">
                                             <div className="text-xs text-gray-700 break-words">
                                                 <b>Cliente: </b> {item.descricao || '-'}
                                             </div>
-                                            <div className="text-xs text-gray-500 italic"><b>Responsável: </b> {item.observacaoAdmin || ''}</div>
+                                            <div className="text-xs text-gray-500 italic">
+                                                <b>Responsável: </b> {item.observacaoAdmin || ''}
+                                            </div>
                                         </td>
-
                                         <td className="px-3 py-2 text-xs text-gray-700">
-                                            <div className="text-xs text-gray-700 break-words">
+                                            <div className="text-xs">
                                                 Criado: {new Date(item.criadoEm).toLocaleDateString('pt-BR')}
                                             </div>
-                                            <div className="text-xs text-gray-700 break-words">
+                                            <div className="text-xs">
                                                 {item.dataAgendamento
                                                     ? `Agendado: ${new Date(item.dataAgendamento).toLocaleString('pt-BR')}`
                                                     : '-'}
                                             </div>
                                         </td>
-                                        <td
-                                            className={`px-3 py-2 font-semibold text-sm ${item.status === 'Novo'
-                                                ? 'text-yellow-500'
-                                                : item.status === 'Em andamento'
-                                                    ? 'text-blue-600'
-                                                    : item.status === 'Concluído'
-                                                        ? 'text-green-600'
-                                                        : 'text-gray-500'
-                                                }`}
-                                        >
+                                        <td className={`px-3 py-2 font-semibold text-sm ${item.status === 'Novo' ? 'text-yellow-500' :
+                                            item.status === 'Em andamento' ? 'text-blue-600' :
+                                                'text-green-600'
+                                            }`}>
                                             {item.status}
                                         </td>
                                         <td className="px-3 py-2">
-                                            {item.valor ? `R$ ${item.valor.toFixed(2)}` : '-'}
+                                            {typeof item.valor === 'number' ? `R$ ${item.valor.toFixed(2)}` : '-'}
                                         </td>
                                         <td className="py-2 px-4 flex gap-2">
                                             <button
                                                 onClick={() => abrirModalGerenciar(item)}
                                                 className="inline-flex items-center gap-2 px-3 py-1 text-sm bg-blue-600 text-white rounded hover:bg-blue-700 transition"
                                             >
-                                                <FaEdit className="text-white" />
+                                                <FaEdit />
                                             </button>
                                             <button
                                                 onClick={() => gerarPdfProposta(item.id)}
                                                 className="inline-flex items-center gap-2 px-3 py-1 text-sm bg-green-600 text-white rounded hover:bg-green-700 transition"
                                                 disabled={loadingPdfId === item.id}
                                             >
-                                                {loadingPdfId === item.id ? (
-                                                    <svg
-                                                        className="animate-spin h-4 w-4 text-white"
-                                                        xmlns="http://www.w3.org/2000/svg"
-                                                        fill="none"
-                                                        viewBox="0 0 24 24"
-                                                    >
-                                                        <circle
-                                                            className="opacity-25"
-                                                            cx="12"
-                                                            cy="12"
-                                                            r="10"
-                                                            stroke="currentColor"
-                                                            strokeWidth="4"
-                                                        ></circle>
-                                                        <path
-                                                            className="opacity-75"
-                                                            fill="currentColor"
-                                                            d="M4 12a8 8 0 018-8v8H4z"
-                                                        ></path>
-                                                    </svg>
-                                                ) : (
-                                                    <FaDownload className="text-white" />
-                                                )}
+                                                <FaDownload />
+                                            </button>
+                                            <button
+                                                onClick={() => abrirModalNovaProposta(item)}
+                                                className="inline-flex items-center gap-2 px-3 py-1 text-sm bg-indigo-600 text-white rounded hover:bg-indigo-700 transition"
+                                            >
+                                                <FaPlus />
+                                            </button>
+                                            <button
+                                                onClick={() => {
+                                                    setIdOrcamento(item.id || 0);
+                                                    setModalPropostasAberto(true);
+                                                }}
+                                                className="inline-flex items-center gap-2 px-3 py-1 text-sm bg-gray-500 text-white rounded hover:bg-gray-600 transition"
+                                            >
+                                                <FaEye />
                                             </button>
                                         </td>
                                     </tr>
@@ -317,6 +334,16 @@ const Dashboard = () => {
                 </div>
             </div>
 
+            <OrcamentoModal
+                isOpen={modalAberto}
+                onRequestClose={() => setModalAberto(false)}
+                orcamentoBase={orcamentoSelecionado}
+            />
+            <PropostasModal
+                isOpen={modalPropostasAberto}
+                onRequestClose={() => setModalPropostasAberto(false)}
+                orcamentoId={idOrcamento}
+            />
         </div>
     );
 };

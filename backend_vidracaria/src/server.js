@@ -212,15 +212,15 @@ app.put('/usuarios/:id', async (req, res) => {
   }
 });
 
-
+/*ORÇAMENTOS */
 app.post('/orcamentos', async (req, res) => {
   try {
     const {
       nome,
       email,
       telefone,
-      servico,
-      tipoVidro,
+      servicoId,
+      tipoVidroId,
       altura,
       largura,
       descricao,
@@ -234,8 +234,8 @@ app.post('/orcamentos', async (req, res) => {
         nome,
         email,
         telefone,
-        servico,
-        tipoVidro,
+        servicoId: parseInt(servicoId),
+        tipoVidroId: tipoVidroId ? parseInt(tipoVidroId) : null,
         altura: altura ? parseFloat(altura) : null,
         largura: largura ? parseFloat(largura) : null,
         descricao,
@@ -243,8 +243,8 @@ app.post('/orcamentos', async (req, res) => {
         observacaoAdmin,
         dataAgendamento: dataAgendamento ? new Date(dataAgendamento) : null,
       },
+      include: { servico: true, tipoVidro: true }
     });
-
 
     res.status(201).json(novoOrcamento);
   } catch (error) {
@@ -256,36 +256,46 @@ app.post('/orcamentos', async (req, res) => {
 
 app.put('/orcamentos/:id', async (req, res) => {
   const { id } = req.params;
-  const { observacaoAdmin, dataAgendamento, status, valor } = req.body;
+  const {
+    observacaoAdmin,
+    dataAgendamento,
+    status,
+    valor,
+  } = req.body;
 
   try {
-    const valorNumerico = valor
+    // Conversão segura do valor (caso venha string formatada)
+    const valorNumerico = typeof valor === 'string'
       ? parseFloat(valor.replace(/[^\d,.-]/g, '').replace(',', '.'))
-      : null;
+      : valor;
 
-    const atualizado = await prisma.orcamento.update({
+    const orcamentoAtualizado = await prisma.orcamento.update({
       where: { id: parseInt(id) },
       data: {
-        observacaoAdmin,
+        observacaoAdmin: observacaoAdmin || null,
         dataAgendamento: dataAgendamento ? new Date(dataAgendamento) : null,
         status,
-        valor: valorNumerico,
+        valor: valorNumerico || null,
       },
     });
 
-    res.json(atualizado);
-  } catch (err) {
-    console.error('Erro ao atualizar orçamento:', err);
-    res.status(500).send('Erro ao atualizar orçamento');
+    res.status(200).json(orcamentoAtualizado);
+  } catch (error) {
+    console.error('Erro ao atualizar orçamento:', error);
+    res.status(500).json({ error: 'Erro ao atualizar orçamento' });
   }
 });
-
 
 
 app.get('/orcamentos', async (req, res) => {
   try {
     const orcamentos = await prisma.orcamento.findMany({
-      orderBy: { criadoEm: 'desc' }
+      orderBy: { criadoEm: 'desc' },
+      include: {
+        servico: true,
+        proposta: true,
+        tipoVidro: true
+      },
     });
     res.json(orcamentos);
   } catch (error) {
@@ -297,11 +307,15 @@ app.get('/orcamentos/:id/pdf', async (req, res) => {
   const { id } = req.params;
 
   try {
-    const orcamento = await prisma.orcamento.findUnique({ where: { id: parseInt(id) } });
+    const orcamento = await prisma.orcamento.findUnique({
+      where: { id: parseInt(id) },
+      include: { servico: true, proposta: true, tipoVidro: true }
+    });
     if (!orcamento) return res.status(404).send('Orçamento não encontrado');
 
+
     const pdfDoc = await PDFDocument.create();
-    const page = pdfDoc.addPage([595, 842]); // formato A4 em pontos
+    const page = pdfDoc.addPage([595, 842]); // A4
     const font = await pdfDoc.embedFont(StandardFonts.Helvetica);
 
     let y = 750;
@@ -312,74 +326,74 @@ app.get('/orcamentos/:id/pdf', async (req, res) => {
 
     // Cabeçalho
     drawText('Proposta de Orçamento - BM - Vidraçaria', 50, 18, 30);
-    // Dados do cliente/serviço
     drawText(`Cliente: ${orcamento.nome}`);
     drawText(`Email: ${orcamento.email}`);
     drawText(`Telefone: ${orcamento.telefone}`);
-    drawText(`Serviço: ${orcamento.servico}`);
-    drawText(`Tipo de Vidro: ${orcamento.tipoVidro || '-'}`);
+    drawText(`Serviço: ${orcamento.servico?.titulo || '-'}`);
+    drawText(`Tipo de Vidro: ${orcamento.tipoVidro.nome || '-'}`);
     drawText(`Altura: ${orcamento.altura || '-'} cm`);
     drawText(`Largura: ${orcamento.largura || '-'} cm`);
     drawText(`Descrição: ${orcamento.descricao || '-'}`);
     drawText(`Observação: ${orcamento.observacaoAdmin || '-'}`);
     drawText(`Agendamento: ${orcamento.dataAgendamento?.toLocaleDateString('pt-BR') || '-'}`);
-    drawText(`Valor:  R$ ${orcamento.valor.toFixed(2) || '-'}`);
-    y -= 30; // espaço extra antes do desenho
+    drawText(`Valor:  R$ ${orcamento.valor != null ? orcamento.valor.toFixed(2) : '-'}`);
+    y -= 30;
 
-    // Desenho vetorial
+    // Desenho ilustrativo
     page.drawText('Desenho ilustrativo:', { x: 50, y, size: 12, font });
 
-    // **CONVERSÃO E ESCALA**
-    const CM_TO_PT = 28.35;
     const margin = 50;
-    const pageWidth = page.getWidth();
+    const visualWidth = 300;
+    const visualHeight = 300;
 
-    // 1) converte cm → pt
-    let widthPt = (orcamento.largura || 0) * CM_TO_PT;
-    let heightPt = (orcamento.altura || 0) * CM_TO_PT;
-
-    // 2) calcula espaço disponível
-    const maxWidth = pageWidth - margin * 2;
-    const maxHeight = y - margin;        // desde y atual até margem inferior
-
-    // 3) escala se necessário
-    const scale = Math.min(
-      widthPt > 0 ? maxWidth / widthPt : 1,
-      heightPt > 0 ? maxHeight / heightPt : 1,
-      1
-    );
-    widthPt *= scale;
-    heightPt *= scale;
-
-    // posição do retângulo logo abaixo do texto “Desenho ilustrativo:”
     const rectX = margin;
-    const rectY = y - heightPt - 10;
+    const rectY = y - visualHeight - 10;
 
-    // desenha o retângulo (preenchido opcionalmente)
-    page.drawRectangle({
-      x: rectX,
-      y: rectY,
-      width: widthPt,
-      height: heightPt,
-      borderColor: rgb(0, 0, 0),
-      borderWidth: 1,
-      fillColor: rgb(0.95, 0.95, 0.95), // opcional
-    });
+    if (orcamento.servico?.imagem) {
+      const caminhoImagem = path.join('uploads', orcamento.servico.imagem);
+      if (fs.existsSync(caminhoImagem)) {
+        const imageBytes = fs.readFileSync(caminhoImagem);
+        const imageEmbed = await pdfDoc.embedJpg(imageBytes).catch(() => pdfDoc.embedPng(imageBytes));
+        const image = await imageEmbed;
 
-    // Linha de dimensão horizontal (largura)
+        page.drawImage(image, {
+          x: rectX,
+          y: rectY,
+          width: visualWidth,
+          height: visualHeight,
+        });
+      } else {
+        page.drawText('[Imagem não encontrada]', {
+          x: rectX,
+          y: rectY + visualHeight / 2,
+          size: 10,
+          font,
+        });
+      }
+    } else {
+      page.drawRectangle({
+        x: rectX,
+        y: rectY,
+        width: visualWidth,
+        height: visualHeight,
+        borderColor: rgb(0, 0, 0),
+        borderWidth: 1,
+        fillColor: rgb(0.95, 0.95, 0.95),
+      });
+    }
+
+    // Linha horizontal (largura)
     const dimHY = rectY - 10;
     page.drawLine({
       start: { x: rectX, y: dimHY },
-      end: { x: rectX + widthPt, y: dimHY },
+      end: { x: rectX + visualWidth, y: dimHY },
       thickness: 0.8,
       color: rgb(0, 0, 0),
     });
-    // “Tiques” nas extremidades
     page.drawLine({ start: { x: rectX, y: dimHY + 5 }, end: { x: rectX, y: dimHY - 5 }, thickness: 0.8, color: rgb(0, 0, 0) });
-    page.drawLine({ start: { x: rectX + widthPt, y: dimHY + 5 }, end: { x: rectX + widthPt, y: dimHY - 5 }, thickness: 0.8, color: rgb(0, 0, 0) });
-    // Texto da largura
-    page.drawText(`${orcamento.largura} cm`, {
-      x: rectX + widthPt / 2 - 15,
+    page.drawLine({ start: { x: rectX + visualWidth, y: dimHY + 5 }, end: { x: rectX + visualWidth, y: dimHY - 5 }, thickness: 0.8, color: rgb(0, 0, 0) });
+    page.drawText(`${orcamento.largura || 0} cm`, {
+      x: rectX + visualWidth / 2 - 15,
       y: dimHY - 15,
       size: 10,
       font,
@@ -389,24 +403,19 @@ app.get('/orcamentos/:id/pdf', async (req, res) => {
     const dimVX = rectX - 10;
     page.drawLine({
       start: { x: dimVX, y: rectY },
-      end: { x: dimVX, y: rectY + heightPt },
+      end: { x: dimVX, y: rectY + visualHeight },
       thickness: 0.8,
       color: rgb(0, 0, 0),
     });
-    // Tiques
     page.drawLine({ start: { x: dimVX + 5, y: rectY }, end: { x: dimVX - 5, y: rectY }, thickness: 0.8, color: rgb(0, 0, 0) });
-    page.drawLine({ start: { x: dimVX + 5, y: rectY + heightPt }, end: { x: dimVX - 5, y: rectY + heightPt }, thickness: 0.8, color: rgb(0, 0, 0) });
-    // Texto da altura, rotacionado 90°
-    page.drawText(`${orcamento.altura} cm`, {
+    page.drawLine({ start: { x: dimVX + 5, y: rectY + visualHeight }, end: { x: dimVX - 5, y: rectY + visualHeight }, thickness: 0.8, color: rgb(0, 0, 0) });
+    page.drawText(`${orcamento.altura || 0} cm`, {
       x: dimVX - 20,
-      y: rectY + heightPt / 2 + 5,
+      y: rectY + visualHeight / 2 + 5,
       size: 10,
       font,
       rotate: degrees(-90),
     });
-
-    // Ajusta y para continuar o restante do PDF
-    y = rectY - 40;
 
     const pdfBytes = await pdfDoc.save();
     res.setHeader('Content-Type', 'application/pdf');
@@ -418,6 +427,231 @@ app.get('/orcamentos/:id/pdf', async (req, res) => {
   }
 });
 
+/*ORÇAMENTOS */
+
+
+/*PROPOSTAS */
+app.get('/propostas/:orcamentoId', async (req, res) => {
+  const { orcamentoId } = req.params;
+
+  try {
+    const propostas = await prisma.proposta.findMany({
+      where: {
+        orcamentoId: parseInt(orcamentoId),
+      },
+      include: {
+        servico: true,
+        tipoVidro: true,
+      },
+      orderBy: {
+        dataCriacao: 'desc',
+      },
+    });
+
+    res.json(propostas);
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: 'Erro ao buscar propostas por orçamento' });
+  }
+});
+
+app.post('/propostas', async (req, res) => {
+  const {
+    orcamentoId, servicoId, tipoVidroId, altura, largura,
+    descricao, observacaoAdmin, valor
+  } = req.body;
+
+  try {
+    const nova = await prisma.proposta.create({
+      data: {
+        orcamentoId,
+        servicoId: parseInt(servicoId),
+        tipoVidroId: tipoVidroId ? parseInt(tipoVidroId) : null,
+        altura,
+        largura,
+        descricao,
+        observacaoAdmin,
+        valor,
+      },
+      include: { servico: true, tipoVidro: true }
+    });
+    res.status(201).json(nova);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Erro ao criar proposta' });
+  }
+});
+
+// Atualizar uma proposta existente
+app.put('/propostas/:id', async (req, res) => {
+  const { id } = req.params;
+  const { observacaoAdmin, valor } = req.body;
+
+  try {
+    const propostaAtualizada = await prisma.proposta.update({
+      where: { id: parseInt(id) },
+      data: {
+        observacaoAdmin,
+        valor
+      },
+      include: { servico: true, tipoVidro: true }
+    });
+
+    res.json(propostaAtualizada);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Erro ao atualizar proposta' });
+  }
+});
+
+// DELETE proposta
+app.delete('/propostas/:id', async (req, res) => {
+  const { id } = req.params;
+
+  try {
+    const proposta = await prisma.proposta.findUnique({
+      where: { id: parseInt(id) },
+    });
+
+    if (!proposta) {
+      return res.status(404).json({ error: 'Proposta não encontrada' });
+    }
+
+    await prisma.proposta.delete({
+      where: { id: parseInt(id) },
+    });
+
+    res.status(204).send();
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Erro ao deletar proposta' });
+  }
+});
+
+// GET gerar PDF da proposta
+app.get('/propostas/:id/pdf', async (req, res) => {
+  const { id } = req.params;
+
+  try {
+    const proposta = await prisma.proposta.findUnique({
+      where: { id: parseInt(id) },
+      include: { servico: true, orcamento: true, tipoVidro: true }
+    });
+
+    if (!proposta) return res.status(404).send('Proposta não encontrada');
+
+    const pdfDoc = await PDFDocument.create();
+    const page = pdfDoc.addPage([595, 842]); // A4
+    const font = await pdfDoc.embedFont(StandardFonts.Helvetica);
+    let y = 780;
+
+    const drawText = (text, x = 50, size = 12, gap = 20) => {
+      page.drawText(text, { x, y, size, font });
+      y -= gap;
+    };
+
+    drawText('Proposta Detalhada - Vidraçaria', 50, 18, 30);
+    drawText(`Cliente: ${proposta.orcamento.nome}`);
+    drawText(`Email: ${proposta.orcamento.email}`);
+    drawText(`Telefone: ${proposta.orcamento.telefone}`);
+    drawText(`Serviço: ${proposta.servico.titulo}`);
+    drawText(`Tipo de Vidro: ${proposta.tipoVidro.nome || '-'}`);
+    drawText(`Altura: ${proposta.altura || '-'} cm`);
+    drawText(`Largura: ${proposta.largura || '-'} cm`);
+    drawText(`Descrição: ${proposta.descricao || '-'}`);
+    drawText(`Observação: ${proposta.observacaoAdmin || '-'}`);
+    drawText(`Valor: R$ ${proposta.valor?.toFixed(2) || '-'}`);
+    y -= 30;
+
+    // Desenho ilustrativo
+    page.drawText('Desenho ilustrativo:', { x: 50, y, size: 12, font });
+
+    const margin = 50;
+    const visualWidth = 300;
+    const visualHeight = 300;
+
+    const rectX = margin;
+    const rectY = y - visualHeight - 10;
+
+    if (proposta.servico?.imagem) {
+      const caminhoImagem = path.join('uploads', proposta.servico.imagem);
+      if (fs.existsSync(caminhoImagem)) {
+        const imageBytes = fs.readFileSync(caminhoImagem);
+        const imageEmbed = await pdfDoc.embedJpg(imageBytes).catch(() => pdfDoc.embedPng(imageBytes));
+        const image = await imageEmbed;
+
+        page.drawImage(image, {
+          x: rectX,
+          y: rectY,
+          width: visualWidth,
+          height: visualHeight,
+        });
+      } else {
+        page.drawText('[Imagem não encontrada]', {
+          x: rectX,
+          y: rectY + visualHeight / 2,
+          size: 10,
+          font,
+        });
+      }
+    } else {
+      page.drawRectangle({
+        x: rectX,
+        y: rectY,
+        width: visualWidth,
+        height: visualHeight,
+        borderColor: rgb(0, 0, 0),
+        borderWidth: 1,
+        fillColor: rgb(0.95, 0.95, 0.95),
+      });
+    }
+
+    // Linha horizontal (largura)
+    const dimHY = rectY - 10;
+    page.drawLine({
+      start: { x: rectX, y: dimHY },
+      end: { x: rectX + visualWidth, y: dimHY },
+      thickness: 0.8,
+      color: rgb(0, 0, 0),
+    });
+    page.drawLine({ start: { x: rectX, y: dimHY + 5 }, end: { x: rectX, y: dimHY - 5 }, thickness: 0.8, color: rgb(0, 0, 0) });
+    page.drawLine({ start: { x: rectX + visualWidth, y: dimHY + 5 }, end: { x: rectX + visualWidth, y: dimHY - 5 }, thickness: 0.8, color: rgb(0, 0, 0) });
+    page.drawText(`${proposta.largura || 0} cm`, {
+      x: rectX + visualWidth / 2 - 15,
+      y: dimHY - 15,
+      size: 10,
+      font,
+    });
+
+    // Linha de dimensão vertical (altura)
+    const dimVX = rectX - 10;
+    page.drawLine({
+      start: { x: dimVX, y: rectY },
+      end: { x: dimVX, y: rectY + visualHeight },
+      thickness: 0.8,
+      color: rgb(0, 0, 0),
+    });
+    page.drawLine({ start: { x: dimVX + 5, y: rectY }, end: { x: dimVX - 5, y: rectY }, thickness: 0.8, color: rgb(0, 0, 0) });
+    page.drawLine({ start: { x: dimVX + 5, y: rectY + visualHeight }, end: { x: dimVX - 5, y: rectY + visualHeight }, thickness: 0.8, color: rgb(0, 0, 0) });
+    page.drawText(`${proposta.altura || 0} cm`, {
+      x: dimVX - 20,
+      y: rectY + visualHeight / 2 + 5,
+      size: 10,
+      font,
+      rotate: degrees(-90),
+    });
+
+    const pdfBytes = await pdfDoc.save();
+    res.setHeader('Content-Type', 'application/pdf');
+    res.setHeader('Content-Disposition', `attachment; filename="proposta_${id}.pdf"`);
+    res.send(Buffer.from(pdfBytes));
+  } catch (err) {
+    console.error(err);
+    res.status(500).send('Erro ao gerar PDF da proposta');
+  }
+});
+
+/*PROPOSTAS */
 
 /*TRATAMENTO DAS IMAGENS */
 app.post('/imagens', upload.single('imagem'), async (req, res) => {
@@ -483,7 +717,6 @@ app.delete('/imagens/:id', async (req, res) => {
 
 /*TRATAMENTO DAS IMAGENS */
 
-
 /* SERVIÇOS */
 // GET /servicos
 app.get('/servicos', async (req, res) => {
@@ -500,48 +733,94 @@ app.get('/servicos', async (req, res) => {
 });
 
 // POST /servicos
-app.post('/servicos', async (req, res) => {
-  const { titulo, descricao, icone } = req.body;
-
-  if (!titulo || !descricao) {
-    return res.status(400).json({ error: 'Título e descrição são obrigatórios.' });
-  }
+app.post('/servicos', upload.single('imagem'), async (req, res) => {
+  const { titulo, descricao, icone, ativo } = req.body;
 
   try {
-    const novo = await prisma.servico.create({
-      data: { titulo, descricao, icone }
+    const novoServico = await prisma.servico.create({
+      data: {
+        titulo,
+        descricao,
+        icone,
+        ativo: ativo === 'false' ? false : true,
+        imagem: req.file?.filename || null, // só salva o nome do arquivo
+      },
     });
 
-    res.status(201).json(novo);
-  } catch (err) {
-    console.error('Erro ao criar serviço:', err);
+    res.status(201).json(novoServico);
+  } catch (error) {
+    console.error('Erro ao criar serviço:', error);
     res.status(500).json({ error: 'Erro ao criar serviço' });
   }
 });
 
+
 // PUT /servicos/:id (editar)
-app.put('/servicos/:id', async (req, res) => {
-  const { id } = req.params;
+app.put('/servicos/:id', upload.single('imagem'), async (req, res) => {
   const { titulo, descricao, icone, ativo } = req.body;
+  const { id } = req.params;
 
   try {
-    const servico = await prisma.servico.update({
+    const servicoAtual = await prisma.servico.findUnique({
       where: { id: parseInt(id) },
-      data: { titulo, descricao, icone, ativo }
     });
 
-    res.json(servico);
-  } catch (err) {
-    console.error('Erro ao atualizar serviço:', err);
+    // Remove a imagem anterior se uma nova for enviada
+    if (req.file && servicoAtual.imagem) {
+      const caminhoAntigo = path.join('uploads', servicoAtual.imagem);
+      if (fs.existsSync(caminhoAntigo)) {
+        fs.unlinkSync(caminhoAntigo);
+      }
+    }
+
+    const data = {
+      titulo,
+      descricao,
+      icone,
+      ativo: ativo === 'false' ? false : true,
+    };
+
+    if (req.file) {
+      data.imagem = req.file.filename;
+    }
+
+    const atualizado = await prisma.servico.update({
+      where: { id: parseInt(id) },
+      data,
+    });
+
+    res.json(atualizado);
+  } catch (error) {
+    console.error('Erro ao atualizar serviço:', error);
     res.status(500).json({ error: 'Erro ao atualizar serviço' });
   }
 });
+
 
 app.delete('/servicos/:id', async (req, res) => {
   const { id } = req.params;
 
   try {
+    // Busca o serviço para pegar a imagem antiga
+    const servico = await prisma.servico.findUnique({
+      where: { id: parseInt(id) },
+    });
+
+    if (!servico) {
+      return res.status(404).json({ error: 'Serviço não encontrado' });
+    }
+
+    // Remove a imagem física se existir
+    if (servico.imagem) {
+      const caminhoImagem = path.join('uploads', servico.imagem);
+      if (fs.existsSync(caminhoImagem)) {
+        fs.unlinkSync(caminhoImagem);
+      }
+    }
+
+    // Remove o registro do banco
     await prisma.servico.delete({ where: { id: parseInt(id) } });
+
     res.status(200).json({ mensagem: 'Serviço removido com sucesso' });
   } catch (err) {
     console.error('Erro ao excluir serviço:', err);
@@ -551,6 +830,92 @@ app.delete('/servicos/:id', async (req, res) => {
 
 /* SERVIÇOS */
 
+/*TIPO DE VIDROS */
+// Listar todos os tipos de vidro
+app.get('/tiposvidro', async (req, res) => {
+  try {
+    const lista = await prisma.tipoVidro.findMany();
+    res.json(lista);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Erro ao listar tipos de vidro' });
+  }
+});
+
+// Buscar tipo de vidro por ID
+app.get('/tiposvidro/:id', async (req, res) => {
+  const { id } = req.params;
+
+  try {
+    const tipo = await prisma.tipoVidro.findUnique({
+      where: { id: parseInt(id) },
+    });
+
+    if (!tipo) return res.status(404).json({ error: 'Tipo de vidro não encontrado' });
+
+    res.json(tipo);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Erro ao buscar tipo de vidro' });
+  }
+});
+
+// Criar novo tipo de vidro
+app.post('/tiposvidro', async (req, res) => {
+  const { nome, descricao, valorM2 } = req.body;
+
+  try {
+    const novo = await prisma.tipoVidro.create({
+      data: {
+        nome,
+        descricao,
+        valorM2: parseFloat(valorM2),
+      },
+    });
+    res.status(201).json(novo);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Erro ao criar tipo de vidro' });
+  }
+});
+
+// Atualizar tipo de vidro
+app.put('/tiposvidro/:id', async (req, res) => {
+  const { id } = req.params;
+  const { nome, descricao, valorM2 } = req.body;
+
+  try {
+    const atualizado = await prisma.tipoVidro.update({
+      where: { id: parseInt(id) },
+      data: {
+        nome,
+        descricao,
+        valorM2: parseFloat(valorM2),
+      },
+    });
+    res.json(atualizado);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Erro ao atualizar tipo de vidro' });
+  }
+});
+
+// Deletar tipo de vidro
+app.delete('/tiposvidro/:id', async (req, res) => {
+  const { id } = req.params;
+
+  try {
+    await prisma.tipoVidro.delete({
+      where: { id: parseInt(id) },
+    });
+    res.status(204).send();
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Erro ao deletar tipo de vidro' });
+  }
+});
+
+/*TIPO DE VIDROS */
 
 /*CONFIGURAÇÕES DO TEXTO*/
 // GET todas as configurações

@@ -14,21 +14,43 @@ datasource db {
 }
 
 model Orcamento {
-  id                 Int      @id @default(autoincrement())
-  nome               String
-  email              String
-  telefone           String
-  servico            String
-  tipoVidro          String?
-  altura             Float?
-  largura            Float?
-  descricao          String?
-  observacaoAdmin    String?
-  dataAgendamento    DateTime?
-  status             String   @default("Novo")
-  valor              Float?
-  criadoEm           DateTime @default(now())
+  id               Int       @id @default(autoincrement())
+  nome             String
+  email            String
+  telefone         String
+  servicoId        Int
+  servico          Servico @relation(fields: [servicoId], references: [id])
+  tipoVidroId     Int?
+  tipoVidro       TipoVidro? @relation(fields: [tipoVidroId], references: [id])
+  altura           Float?
+  largura          Float?
+  descricao        String?
+  imagemUrl        String?
+  observacaoAdmin  String?
+  dataAgendamento  DateTime?
+  valor            Float?
+  status           String?   @default("Novo")
+  criadoEm         DateTime  @default(now())
+  proposta Proposta[]
 }
+
+model Proposta {
+  id              Int       @id @default(autoincrement())
+  orcamentoId     Int
+  orcamento       Orcamento @relation(fields: [orcamentoId], references: [id])
+  servicoId       Int
+  servico         Servico   @relation(fields: [servicoId], references: [id])
+  tipoVidroId     Int?
+  tipoVidro       TipoVidro? @relation(fields: [tipoVidroId], references: [id])
+  altura          Float?
+  largura         Float?
+  descricao       String?
+  observacaoAdmin String?
+  valor           Float?
+  dataCriacao     DateTime  @default(now())
+}
+
+
 
 model Usuario {
   id                 Int      @id @default(autoincrement())
@@ -50,13 +72,27 @@ model Imagem {
 }
 
 model Servico {
-  id        Int      @id @default(autoincrement())
-  titulo    String
-  descricao String
-  icone     String?
-  ativo     Boolean  @default(true)
-  criado_em DateTime @default(now())
+  id         Int      @id @default(autoincrement())
+  titulo     String
+  descricao  String
+  icone      String?
+  imagem     String? 
+  ativo      Boolean  @default(true)
+  criado_em  DateTime @default(now())
+  orcamentos Orcamento[] 
+  proposta Proposta[] 
 }
+
+model TipoVidro {
+  id              Int       @id @default(autoincrement())
+  nome            String
+  descricao       String?
+  valorM2         Float
+  criadoEm        DateTime  @default(now())
+  propostas       Proposta[]
+  orcamentos       Orcamento[]
+}
+
 
 model ConfiguracaoSite {
   id            Int      @id @default(autoincrement())

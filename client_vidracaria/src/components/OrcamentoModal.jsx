@@ -1,27 +1,76 @@
 // src/components/OrcamentoModal.jsx
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Modal from 'react-modal';
 import Swal from 'sweetalert2';
 import { IMaskInput } from 'react-imask';
 
+Modal.setAppElement('#root');
 
-Modal.setAppElement('#root'); // importante para acessibilidade
-
-const OrcamentoModal = ({ isOpen, onRequestClose }) => {
+const OrcamentoModal = ({ isOpen, onRequestClose, orcamentoBase, onSubmit }) => {
+    const [servicos, setServicos] = useState([]);
+    const [tiposVidro, setTiposVidro] = useState([]);
     const [form, setForm] = useState({
         nome: '',
         email: '',
         telefone: '',
-        servico: '',
-        tipoVidro: '',
+        servicoId: '',
+        tipoVidroId: '',
         altura: '',
         largura: '',
         descricao: '',
     });
 
+    useEffect(() => {
+        const buscarServicos = async () => {
+            try {
+                const res = await fetch('http://localhost:4000/servicos');
+                const data = await res.json();
+                setServicos(data.filter(s => s.ativo));
+            } catch (err) {
+                console.error('Erro ao buscar serviços', err);
+            }
+        };
+
+        const buscarTiposVidro = async () => {
+            try {
+                const res = await fetch('http://localhost:4000/tiposvidro');
+                const data = await res.json();
+                setTiposVidro(data);
+            } catch (err) {
+                console.error('Erro ao buscar tipos de vidro', err);
+            }
+        };
+
+        if (isOpen) buscarTiposVidro();
+
+        if (isOpen) buscarServicos();
+    }, [isOpen]);
+
+    useEffect(() => {
+        if (orcamentoBase) {
+            setForm({
+                nome: orcamentoBase.nome || '',
+                email: orcamentoBase.email || '',
+                telefone: orcamentoBase.telefone || '',
+                servicoId: orcamentoBase.servicoId || '',
+                tipoVidroId: orcamentoBase.tipoVidroId || '',
+                altura: orcamentoBase.altura || '',
+                largura: orcamentoBase.largura || '',
+                descricao: orcamentoBase.descricao || '',
+            });
+        }
+    }, [orcamentoBase, isOpen]);
+
     const handleChange = (e) => {
-        setForm({ ...form, [e.target.name]: e.target.value });
-    };
+        const { name, value } = e.target;
+      
+        setForm((prev) => ({
+          ...prev,
+          [name]: value,
+          ...(name === 'tipoVidroId' && { tipoVidroId: parseInt(value) || null }),
+        }));
+      };
+      
 
     const handleSubmit = async (e) => {
         e.preventDefault();
@@ -31,22 +80,63 @@ const OrcamentoModal = ({ isOpen, onRequestClose }) => {
                 ...form,
                 altura: form.altura ? parseFloat(form.altura.toString().replace(',', '.')) : null,
                 largura: form.largura ? parseFloat(form.largura.toString().replace(',', '.')) : null,
-              };
+            };
 
-            const response = await fetch('http://localhost:4000/orcamentos', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify(dadosConvertidos)
-            });
+            let url = 'http://localhost:4000/orcamentos';
+            let body = dadosConvertidos;
+
+            // Se for uma nova proposta, muda o endpoint e adiciona o orcamentoId
+            if (orcamentoBase) {
+                url = 'http://localhost:4000/propostas';
+                body = {
+                    ...dadosConvertidos,
+                    orcamentoId: orcamentoBase.id,
+                };
+            }
+
+            if (onSubmit && orcamentoBase?.id) {
+                await onSubmit({ ...body, id: orcamentoBase.id });
+            } else {
+                const response = await fetch(url, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(body),
+                });
+            
+                if (response.ok) {
+                    Swal.fire({
+                        icon: 'success',
+                        title: 'Sucesso!',
+                        text: orcamentoBase ? 'Proposta criada com sucesso.' : 'Orçamento enviado com sucesso.',
+                        confirmButtonColor: '#2563eb',
+                    });
+            
+                    onRequestClose();
+                    setForm({
+                        nome: '',
+                        email: '',
+                        telefone: '',
+                        servicoId: '',
+                        tipoVidroId: '',
+                        altura: '',
+                        largura: '',
+                        descricao: '',
+                    });
+                } else {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Erro ao enviar',
+                        text: 'Tente novamente mais tarde.',
+                    });
+                }
+            }            
 
             if (response.ok) {
                 Swal.fire({
                     icon: 'success',
-                    title: 'Enviado!',
-                    text: 'Seu orçamento foi enviado com sucesso.',
-                    confirmButtonColor: '#2563eb', // azul do Tailwind
+                    title: 'Sucesso!',
+                    text: orcamentoBase ? 'Proposta criada com sucesso.' : 'Orçamento enviado com sucesso.',
+                    confirmButtonColor: '#2563eb',
                 });
 
                 onRequestClose();
@@ -54,7 +144,7 @@ const OrcamentoModal = ({ isOpen, onRequestClose }) => {
                     nome: '',
                     email: '',
                     telefone: '',
-                    servico: '',
+                    servicoId: '',
                     tipoVidro: '',
                     altura: '',
                     largura: '',
@@ -77,6 +167,7 @@ const OrcamentoModal = ({ isOpen, onRequestClose }) => {
         }
     };
 
+
     return (
         <Modal
             isOpen={isOpen}
@@ -85,8 +176,9 @@ const OrcamentoModal = ({ isOpen, onRequestClose }) => {
             className="max-w-xl mx-auto mt-20 bg-white rounded-lg shadow-lg p-8 outline-none"
             overlayClassName="fixed inset-0 bg-blue-200 bg-opacity-60 backdrop-blur-sm flex justify-center items-start"
         >
-
-            <h2 className="text-2xl font-bold mb-6 text-blue-700">Solicitar Orçamento</h2>
+            <h2 className="text-2xl font-bold mb-6 text-blue-700">
+                {orcamentoBase ? 'Nova Proposta' : 'Solicitar Orçamento'}
+            </h2>
             <form onSubmit={handleSubmit} className="space-y-4">
                 <input
                     name="nome"
@@ -115,39 +207,32 @@ const OrcamentoModal = ({ isOpen, onRequestClose }) => {
                     className="w-full border px-4 py-2 rounded"
                 />
                 <select
-                    name="servico"
-                    value={form.servico}
+                    name="servicoId"
+                    value={form.servicoId || ''}
                     onChange={handleChange}
                     required
                     className="w-full border px-4 py-2 rounded"
                 >
-                    <option value="">Selecione o tipo de item</option>
-                    <option value="Porta de vidro">Porta de vidro</option>
-                    <option value="Janela de vidro">Janela de vidro</option>
-                    <option value="Box para banheiro">Box para banheiro</option>
-                    <option value="Espelho decorativo">Espelho decorativo</option>
-                    <option value="Vitrine comercial">Vitrine comercial</option>
-                    <option value="Outro">Outro</option>
+                    <option value="">Selecione o tipo de serviço</option>
+                    {servicos.map((s) => (
+                        <option key={s.id} value={s.id}>{s.titulo}</option>
+                    ))}
                 </select>
                 <select
-                    name="tipoVidro"
-                    value={form.tipoVidro}
+                    name="tipoVidroId"
+                    value={form.tipoVidroId || ''}
                     onChange={handleChange}
                     required
                     className="w-full border px-4 py-2 rounded"
                 >
                     <option value="">Selecione o tipo de vidro</option>
-                    <option value="Vidro temperado">Vidro temperado</option>
-                    <option value="Vidro laminado">Vidro laminado</option>
-                    <option value="Vidro comum (float)">Vidro comum (float)</option>
-                    <option value="Vidro espelhado">Vidro espelhado</option>
-                    <option value="Vidro jateado">Vidro jateado</option>
-                    <option value="Vidro serigrafado">Vidro serigrafado</option>
-                    <option value="Vidro acidado (fosco)">Vidro acidado (fosco)</option>
-                    <option value="Vidro refletivo">Vidro refletivo</option>
-                    <option value="Vidro blindado">Vidro blindado</option>
-                    <option value="Outro">Outro</option>
+                    {tiposVidro.map((tv) => (
+                        <option key={tv.id} value={tv.id}>
+                            {tv.nome}
+                        </option>
+                    ))}
                 </select>
+
                 <div className="flex gap-4">
                     <input
                         name="altura"

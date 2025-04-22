@@ -10,6 +10,7 @@ import AdminLayout from './components/AdminLayout';
 import CadastroImagem from './pages/admin/CadastroImagem';
 import CadastroServico from './pages/admin/CadastroServico';
 import CadastroConfiguracoes from './pages/admin/CadastroConfiguracoes';
+import CadastroTipoVidro from './pages/admin/CadastroTipoVidro';
 
 
 export default function App() {
@@ -25,6 +26,7 @@ export default function App() {
         <Route path="imagens" element={<AdminLayout><CadastroImagem /></AdminLayout>} />
         <Route path="servicos" element={<AdminLayout><CadastroServico /></AdminLayout>} />
         <Route path="configuracoes" element={<AdminLayout><CadastroConfiguracoes /></AdminLayout>} />
+        <Route path="vidros" element={<AdminLayout><CadastroTipoVidro /></AdminLayout>} />
         {/* Rota inválida dentro de /admin */}
         <Route path="*" element={<Navigate to="/admin/home" replace />} />
       </Route>

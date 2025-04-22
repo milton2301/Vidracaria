@@ -10,7 +10,15 @@ const CadastroServico = () => {
     const [modalAberto, setModalAberto] = useState(false);
     const [servicos, setServicos] = useState([]);
     const [filtro, setFiltro] = useState('');
-    const [form, setForm] = useState({ id: null, titulo: '', descricao: '', icone: '', ativo: true });
+    const [preview, setPreview] = useState(null);
+    const [form, setForm] = useState({
+        id: null,
+        titulo: '',
+        descricao: '',
+        icone: '',
+        ativo: true,
+        imagem: null,
+    });
 
     const buscarServicos = async () => {
         try {
@@ -27,8 +35,13 @@ const CadastroServico = () => {
     }, []);
 
     const handleInput = (e) => {
-        const { name, value, type, checked } = e.target;
-        const val = type === 'checkbox' ? checked : value;
+        const { name, value, type, checked, files } = e.target;
+        const val = type === 'checkbox' ? checked : (type === 'file' ? files[0] : value);
+
+        if (type === 'file' && files[0]) {
+            setPreview(URL.createObjectURL(files[0]));
+        }
+
         setForm({ ...form, [name]: val });
     };
 
@@ -38,6 +51,7 @@ const CadastroServico = () => {
     };
 
     const abrirModalEdicao = (servico) => {
+        setPreview(null);
         setForm(servico);
         setModalAberto(true);
     };
@@ -54,11 +68,19 @@ const CadastroServico = () => {
             ? `http://localhost:4000/servicos/${form.id}`
             : `http://localhost:4000/servicos`;
 
+        const formData = new FormData();
+        formData.append('titulo', form.titulo);
+        formData.append('descricao', form.descricao);
+        formData.append('icone', form.icone);
+        formData.append('ativo', form.ativo);
+        if (form.imagem instanceof File) {
+            formData.append('imagem', form.imagem);
+        }
+
         try {
             const res = await fetch(url, {
                 method: metodo,
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(form),
+                body: formData,
             });
 
             if (res.ok) {
@@ -71,7 +93,9 @@ const CadastroServico = () => {
         } catch (err) {
             Swal.fire('Erro', 'Erro ao conectar com o servidor', 'error');
         }
+        setPreview(null);
     };
+
 
     const removerServico = async (id) => {
         const confirma = await Swal.fire({
@@ -134,9 +158,9 @@ const CadastroServico = () => {
                 <table className="min-w-full table-auto text-sm">
                     <thead>
                         <tr className="bg-gray-50 text-left text-gray-700">
-                            <th className="py-2 px-3">Título</th>
+                            <th className="py-2 px-3">Nome</th>
                             <th className="py-2 px-3">Descrição</th>
-                            <th className="py-2 px-3">Ícone</th>
+                            <th className="py-2 px-3">Ícone/Imagem</th>
                             <th className="py-2 px-3">Ativo</th>
                             <th className="py-2 px-3">Ações</th>
                         </tr>
@@ -152,7 +176,15 @@ const CadastroServico = () => {
                                 <tr key={s.id} className="border-t hover:bg-gray-50">
                                     <td className="py-2 px-3">{s.titulo}</td>
                                     <td className="py-2 px-3">{s.descricao}</td>
-                                    <td className="py-2 px-3 font-mono text-xs text-gray-700">{s.icone || '-'}</td>
+                                    <td className="py-2 px-3 font-mono text-xs text-gray-700">{s.icone || '-'}
+                                        {s.imagem && !(s.imagem instanceof File) && (
+                                            <img
+                                                src={`http://localhost:4000/uploads/${s.imagem}`}
+                                                alt="Imagem atual"
+                                                className="w-15 h-15 object-cover mt-2 rounded shadow"
+                                            />
+                                        )}
+                                    </td>
                                     <td className="py-2 px-3">{s.ativo ? 'Sim' : 'Não'}</td>
                                     <td className="py-2 px-3 flex gap-2 text-center">
                                         <button
@@ -202,47 +234,74 @@ const CadastroServico = () => {
                         value={form.descricao}
                         onChange={handleInput}
                         className="w-full border px-3 py-2 rounded resize-none"
-                        rows={5}
+                        rows={3}
                         required
                     />
 
-                    <div>
-                        <label className="block mb-1 text-sm font-medium text-gray-700">Ícone</label>
-                        <select
-                            name="icone"
-                            value={form.icone}
-                            onChange={handleInput}
-                            className="w-full border px-3 py-2 rounded"
-                        >
-                            <option value="">Selecione um ícone</option>
-                            {opcoesIcones.map((opt) => {
-                                const Icone = FaIcons[opt.nome];
-                                return (
-                                    <option key={opt.nome} value={opt.nome}>
-                                        {opt.label}
-                                    </option>
-                                );
-                            })}
-                        </select>
-                        {form.icone && (
-                            <div className="mt-2 text-blue-600 flex items-center gap-2">
-                                Icone: {React.createElement(FaIcons[form.icone], { className: 'text-2xl' })}
-                            </div>
-                        )}
-
+                    <div className="grid grid-cols-2 md:grid-cols-2 gap-4">
+                        <div>
+                            <label className="block mb-1 text-sm font-medium text-gray-700">Imagem Visualizar no Orçamento (opcional)</label>
+                            <input
+                                type="file"
+                                name="imagem"
+                                accept="image/*"
+                                onChange={handleInput}
+                                className="w-full border px-3 py-2 rounded cursor-pointer"
+                            />
+                            {form.imagem && !(form.imagem instanceof File) && (
+                                <img
+                                    src={`http://localhost:4000/uploads/${form.imagem}`}
+                                    alt="Imagem atual"
+                                    className="w-32 h-32 object-cover mt-2 rounded shadow"
+                                />
+                            )}
+                            {preview && (
+                                <img
+                                    src={preview}
+                                    alt="Pré-visualização"
+                                    className="w-32 h-32 object-cover mt-2 rounded shadow"
+                                />
+                            )}
+                        </div>
+                        <div>
+                            <label className="block mb-1 text-sm font-medium text-gray-700">Ícone Visualização Cliente</label>
+                            <select
+                                name="icone"
+                                value={form.icone}
+                                onChange={handleInput}
+                                className="w-full border px-3 py-2 rounded"
+                            >
+                                <option value="">Selecione um ícone</option>
+                                {opcoesIcones.map((opt) => {
+                                    const Icone = FaIcons[opt.nome];
+                                    return (
+                                        <option key={opt.nome} value={opt.nome}>
+                                            {opt.label}
+                                        </option>
+                                    );
+                                })}
+                            </select>
+                            {form.icone && (
+                                <div className="mt-2 text-blue-600 flex items-center gap-2">
+                                    Ícone: {React.createElement(FaIcons[form.icone], { className: 'text-2xl' })}
+                                </div>
+                            )}
+                        </div>
                     </div>
-                    <label className="inline-flex items-center">
-                        <input
-                            type="checkbox"
-                            name="ativo"
-                            checked={form.ativo}
-                            onChange={handleInput}
-                            className="mr-2"
-                        />
-                        Ativo
-                    </label>
 
-                    <div className="flex justify-end">
+
+                    <div className="flex justify-between items-center mt-4">
+                        <label className="inline-flex items-center">
+                            <input
+                                type="checkbox"
+                                name="ativo"
+                                checked={form.ativo}
+                                onChange={handleInput}
+                                className="mr-2"
+                            />
+                            Ativo
+                        </label>
+
                         <button
                             type="submit"
                             className="bg-blue-600 text-white px-5 py-2 rounded hover:bg-blue-700"
