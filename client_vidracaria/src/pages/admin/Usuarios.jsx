@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import Swal from 'sweetalert2';
 import Modal from 'react-modal';
-import { FaBan, FaUnlock, FaToggleOn, FaToggleOff, FaPlus } from 'react-icons/fa';
+import { FaBan, FaUnlock, FaToggleOn, FaToggleOff, FaPlus, FaSave } from 'react-icons/fa';
 
 Modal.setAppElement('#root');
 
@@ -204,9 +204,9 @@ const Usuarios = () => {
           <div className="flex justify-end">
             <button
               type="submit"
-              className="bg-blue-600 text-white font-semibold px-5 py-2 rounded hover:bg-blue-700"
+              className="bg-blue-600 flex items-center text-white font-semibold px-5 py-2 rounded hover:bg-blue-700"
             >
-              Cadastrar
+              <FaSave className='mr-2'/> Cadastrar
             </button>
           </div>
         </form>

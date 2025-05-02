@@ -62,7 +62,7 @@ const PropostasModal = ({ isOpen, onRequestClose, orcamentoId, reload }) => {
                 currency: 'BRL',
             });
         }
-    
+
         const { value: formValues } = await Swal.fire({
             title: `<span class="text-blue-700 text-xl font-semibold">Editar Proposta #${p.id}</span>`,
             width: '600px',
@@ -106,7 +106,7 @@ const PropostasModal = ({ isOpen, onRequestClose, orcamentoId, reload }) => {
                 };
             },
         });
-    
+
         if (formValues) {
             try {
                 const res = await fetch(`http://localhost:4000/propostas/${p.id}`, {
@@ -117,7 +117,7 @@ const PropostasModal = ({ isOpen, onRequestClose, orcamentoId, reload }) => {
                         valor: formValues.valor,
                     }),
                 });
-    
+
                 if (res.ok) {
                     Swal.fire('Sucesso', 'Proposta atualizada com sucesso!', 'success');
                     buscarPropostas();
@@ -130,7 +130,7 @@ const PropostasModal = ({ isOpen, onRequestClose, orcamentoId, reload }) => {
             }
         }
     };
-    
+
 
 
     const gerarPdfProposta = async (id) => {
@@ -156,48 +156,65 @@ const PropostasModal = ({ isOpen, onRequestClose, orcamentoId, reload }) => {
             className="w-full max-w-5xl h-[80vh] mx-auto mt-20 bg-white rounded-lg shadow-lg p-6 overflow-y-auto outline-none"
             overlayClassName="fixed inset-0 bg-blue-200 bg-opacity-60 backdrop-blur-sm flex justify-center items-start"
         >
-            <h2 className="text-2xl font-bold text-blue-700 mb-6">Propostas vinculadas</h2>
+            <h2 className="text-2xl font-bold text-blue-700 mb-6">Propostas</h2>
             <div className="overflow-auto bg-white rounded shadow">
                 <table className="min-w-full table-auto text-sm">
                     <thead className="bg-gray-100 text-gray-700">
                         <tr>
-                            <th className="px-4 py-2 text-left">Serviço</th>
-                            <th className="px-4 py-2 text-left">Tipo de Vidro</th>
-                            <th className="px-4 py-2 text-left">Tamanho</th>
-                            <th className="px-4 py-2 text-left">Valor</th>
-                            <th className="px-4 py-2 text-left">Ações</th>
+                            <th className="px-4 py-2 text-left">Detalhes</th>
+                            <th className="px-4 py-2 text-left">Observações</th>
+                            <th className="px-4 py-2 text-left">Proposta</th>
+                            <th className="px-4 py-2 text-center">Ações</th>
                         </tr>
                     </thead>
                     <tbody>
                         {propostas?.length > 0 ? (
                             propostas.map((p) => (
                                 <tr key={p.id} className="border-t hover:bg-gray-50">
-                                    <td className="px-4 py-2">{p.servico?.titulo || '-'}</td>
-                                    <td className="px-4 py-2">{p.tipoVidro?.nome || '-'}</td>
                                     <td className="px-4 py-2">
-                                        {p.altura && p.largura ? `${p.altura} x ${p.largura} cm` : '-'}
+                                        <div>{p.servico?.titulo || '-'}</div>
+                                        <div className="text-xs text-gray-500">{p.tipoVidro?.nome || '-'}</div>
+                                        <div className="text-xs text-gray-500">
+                                            {p.altura && p.largura ? `${p.altura} cm x ${p.largura} cm` : '-'}
+                                        </div>
                                     </td>
                                     <td className="px-4 py-2">
-                                        {typeof p.valor === 'number' ? `R$ ${p.valor.toFixed(2)}` : '-'}
+                                        <div className="text-xs text-gray-700 break-words">
+                                            <b>Cliente: </b> {p.descricao || '-'}
+                                        </div>
+                                        <div className="text-xs text-gray-500 italic">
+                                            <b>Responsável: </b> {p.observacaoAdmin || ''}
+                                        </div>
                                     </td>
-                                    <td className="px-4 py-2 flex gap-3">
+                                    <td className="px-4 py-2">
+                                        <div className="text-xs text-gray-700 break-words">
+                                            <b>Total: </b> {typeof p.valor === 'number' ? `R$ ${p.valor.toFixed(2)}` : '-'}
+                                        </div>
+                                        <div className="text-xs text-gray-500 italic">
+                                            <b>Vidros: </b>{((p.altura * p.largura) * p.tipoVidro.valorM2) ? `R$ ${((p.altura * p.largura) * p.tipoVidro.valorM2).toFixed(2)}` : '-'}
+                                        </div>
+                                        <div className="text-xs text-gray-500 italic">
+                                            <b>Mão de obra: </b>{((p.altura * p.largura) * p.tipoVidro.valorM2) && typeof p.valor === 'number' ? `R$ ${(p.valor - ((p.altura * p.largura) * p.tipoVidro.valorM2)).toFixed(2)}` : '-'}
+                                        </div>
+                                    </td>
+                                    <td className="px-4 py-2 flex gap-3 justify-center">
                                         <button
                                             onClick={() => editarProposta(p)}
-                                            className="text-blue-600 hover:text-blue-800"
+                                            className="inline-flex items-center gap-2 px-3 py-1 text-sm bg-blue-600 text-white rounded hover:bg-blue-700 transition"
                                             title="Editar"
                                         >
                                             <FaEdit />
                                         </button>
                                         <button
                                             onClick={() => confirmarDelecao(p.id)}
-                                            className="text-red-600 hover:text-red-800"
-                                            title="Excluir"
+                                            className="inline-flex items-center gap-2 px-3 py-1 text-sm bg-red-600 text-white rounded hover:bg-red-700 transition"
+                                            title="Excluir Proposta"
                                         >
                                             <FaTrash />
                                         </button>
                                         <button
                                             onClick={() => gerarPdfProposta(p.id)}
-                                            className="text-green-600 hover:text-green-800"
+                                             className="inline-flex items-center gap-2 px-3 py-1 text-sm bg-green-600 text-white rounded hover:bg-green-700 transition"
                                             title="Gerar PDF"
                                         >
                                             <FaDownload />

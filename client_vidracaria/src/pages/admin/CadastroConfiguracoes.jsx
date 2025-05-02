@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import Modal from 'react-modal';
 import Swal from 'sweetalert2';
-import { FaEdit } from 'react-icons/fa';
+import { FaEdit, FaSave } from 'react-icons/fa';
 
 Modal.setAppElement('#root');
 
@@ -80,7 +80,7 @@ const CadastroConfiguracoes = () => {
                     </div>
                     <button
                         onClick={() => abrirModal('hero')}
-                        className="text-blue-600 hover:text-blue-800"
+                        className="inline-flex items-center gap-2 px-3 py-1 text-sm bg-blue-600 text-white rounded hover:bg-blue-700 transition"
                         title="Editar"
                     >
                         <FaEdit className="text-xl" />
@@ -97,7 +97,7 @@ const CadastroConfiguracoes = () => {
                     </div>
                     <button
                         onClick={() => abrirModal('sobre')}
-                        className="text-blue-600 hover:text-blue-800"
+                        className="inline-flex items-center gap-2 px-3 py-1 text-sm bg-blue-600 text-white rounded hover:bg-blue-700 transition"
                         title="Editar"
                     >
                         <FaEdit className="text-xl" />
@@ -157,9 +157,9 @@ const CadastroConfiguracoes = () => {
                     <div className="flex justify-end">
                         <button
                             type="submit"
-                            className="bg-blue-600 text-white px-5 py-2 rounded hover:bg-blue-700"
+                            className="bg-blue-600 flex items-center text-white font-semibold px-5 py-2 rounded hover:bg-blue-700"
                         >
-                            Salvar
+                         <FaSave className="mr-2" />   Salvar
                         </button>
                     </div>
                 </form>

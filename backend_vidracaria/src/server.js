@@ -266,7 +266,7 @@ app.put('/orcamentos/:id', async (req, res) => {
   try {
     // Conversão segura do valor (caso venha string formatada)
     const valorNumerico = typeof valor === 'string'
-      ? parseFloat(valor.replace(/[^\d,.-]/g, '').replace(',', '.'))
+      ? parseFloat(valor.replace(/[^0-9,]/g, '').replace(',', '.'))
       : valor;
 
     const orcamentoAtualizado = await prisma.orcamento.update({
@@ -316,27 +316,91 @@ app.get('/orcamentos/:id/pdf', async (req, res) => {
 
     const pdfDoc = await PDFDocument.create();
     const page = pdfDoc.addPage([595, 842]); // A4
-    const font = await pdfDoc.embedFont(StandardFonts.Helvetica);
+    // ---- inicio marca d'água ----
+    const logo = await prisma.imagem.findFirst({ where: { tipo: 'Logo Header' } });
+    if (logo) {
+      const headerPath = path.join(pastaUploads, logo.caminho);
+      if (fs.existsSync(headerPath)) {
+        const imageBytes = fs.readFileSync(headerPath);
+        const ext = path.extname(headerPath).toLowerCase();
+        let watermarkImage;
 
-    let y = 750;
-    const drawText = (text, x = 50, size = 12, gap = 20) => {
-      page.drawText(text, { x, y, size, font });
+        try {
+          if (ext === '.png') {
+            watermarkImage = await pdfDoc.embedPng(imageBytes);
+          } else if (ext === '.jpg' || ext === '.jpeg') {
+            watermarkImage = await pdfDoc.embedJpg(imageBytes);
+          } else {
+            throw new Error(`Formato não suportado: ${ext}`);
+          }
+
+          const pages = pdfDoc.getPages();
+          pages.forEach((page) => {
+            const { width, height } = page.getSize();
+
+            page.drawImage(watermarkImage, {
+              x: 0,
+              y: 0,
+              width,
+              height,
+              opacity: 0.1,
+            });
+          });
+
+        } catch (err) {
+          console.error("Erro ao embutir marca d'água:", err.message);
+        }
+      }
+    }
+    // ---- fim marca d'água ----
+
+    const font = await pdfDoc.embedFont(StandardFonts.Helvetica);
+    let y = 800;
+    const boldFont = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
+
+    const drawText = (label, value = '', x = 50, size = 12, gap = 20) => {
+      const labelFont = boldFont;
+      const valueFont = font;
+      const labelWidth = labelFont.widthOfTextAtSize(label, size);
+      page.drawText(label, {
+        x,
+        y,
+        size,
+        font: labelFont
+      });
+
+      page.drawText(value, {
+        x: x + labelWidth,
+        y,
+        size,
+        font: valueFont
+      });
+
       y -= gap;
     };
 
-    // Cabeçalho
-    drawText('Proposta de Orçamento - BM - Vidraçaria', 50, 18, 30);
-    drawText(`Cliente: ${orcamento.nome}`);
-    drawText(`Email: ${orcamento.email}`);
-    drawText(`Telefone: ${orcamento.telefone}`);
-    drawText(`Serviço: ${orcamento.servico?.titulo || '-'}`);
-    drawText(`Tipo de Vidro: ${orcamento.tipoVidro.nome || '-'}`);
-    drawText(`Altura: ${orcamento.altura || '-'} cm`);
-    drawText(`Largura: ${orcamento.largura || '-'} cm`);
-    drawText(`Descrição: ${orcamento.descricao || '-'}`);
-    drawText(`Observação: ${orcamento.observacaoAdmin || '-'}`);
-    drawText(`Agendamento: ${orcamento.dataAgendamento?.toLocaleDateString('pt-BR') || '-'}`);
-    drawText(`Valor:  R$ ${orcamento.valor != null ? orcamento.valor.toFixed(2) : '-'}`);
+    const titulo = 'Orçamento - BM - Vidraçaria';
+    const tituloSize = 18;
+    const tituloWidth = boldFont.widthOfTextAtSize(titulo, tituloSize);
+
+    page.drawText(titulo, {
+      x: (page.getWidth() - tituloWidth) / 2,
+      y,
+      size: tituloSize,
+      font: boldFont,
+    });
+    y -= 30;
+    drawText('Cliente: ', orcamento.nome);
+    drawText('Email: ', orcamento.email);
+    drawText('Telefone: ', orcamento.telefone);
+    drawText('Serviço: ', orcamento.servico?.titulo || '-');
+    drawText('Tipo de Vidro: ', orcamento.tipoVidro.nome || '-');
+    drawText('Altura: ', `${orcamento.altura || '-'} cm`);
+    drawText('Largura: ', `${orcamento.largura || '-'} cm`);
+    drawText('Descrição: ', orcamento.descricao || '-');
+    drawText('Observação: ', orcamento.observacaoAdmin || '-');
+    drawText('Agendamento: ', orcamento.dataAgendamento?.toLocaleDateString('pt-BR') || '-');
+    drawText('Valor: ', `R$ ${orcamento.valor?.toFixed(2) || '-'}`);
     y -= 30;
 
     // Desenho ilustrativo
@@ -542,25 +606,90 @@ app.get('/propostas/:id/pdf', async (req, res) => {
 
     const pdfDoc = await PDFDocument.create();
     const page = pdfDoc.addPage([595, 842]); // A4
-    const font = await pdfDoc.embedFont(StandardFonts.Helvetica);
-    let y = 780;
+    // ---- inicio marca d'água ----
+    const logo = await prisma.imagem.findFirst({ where: { tipo: 'Logo Header' } });
+    if (logo) {
+      const headerPath = path.join(pastaUploads, logo.caminho);
+      if (fs.existsSync(headerPath)) {
+        const imageBytes = fs.readFileSync(headerPath);
+        const ext = path.extname(headerPath).toLowerCase();
+        let watermarkImage;
 
-    const drawText = (text, x = 50, size = 12, gap = 20) => {
-      page.drawText(text, { x, y, size, font });
+        try {
+          if (ext === '.png') {
+            watermarkImage = await pdfDoc.embedPng(imageBytes);
+          } else if (ext === '.jpg' || ext === '.jpeg') {
+            watermarkImage = await pdfDoc.embedJpg(imageBytes);
+          } else {
+            throw new Error(`Formato não suportado: ${ext}`);
+          }
+
+          const pages = pdfDoc.getPages();
+          pages.forEach((page) => {
+            const { width, height } = page.getSize();
+
+            page.drawImage(watermarkImage, {
+              x: 0,
+              y: 0,
+              width,
+              height,
+              opacity: 0.1,
+            });
+          });
+
+        } catch (err) {
+          console.error("Erro ao embutir marca d'água:", err.message);
+        }
+      }
+    }
+    // ---- fim marca d'água ----
+
+    const font = await pdfDoc.embedFont(StandardFonts.Helvetica);
+    let y = 800;
+    const boldFont = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
+
+    const drawText = (label, value = '', x = 50, size = 12, gap = 20) => {
+      const labelFont = boldFont;
+      const valueFont = font;
+      const labelWidth = labelFont.widthOfTextAtSize(label, size);
+      page.drawText(label, {
+        x,
+        y,
+        size,
+        font: labelFont
+      });
+
+      page.drawText(value, {
+        x: x + labelWidth,
+        y,
+        size,
+        font: valueFont
+      });
+
       y -= gap;
     };
 
-    drawText('Proposta Detalhada - Vidraçaria', 50, 18, 30);
-    drawText(`Cliente: ${proposta.orcamento.nome}`);
-    drawText(`Email: ${proposta.orcamento.email}`);
-    drawText(`Telefone: ${proposta.orcamento.telefone}`);
-    drawText(`Serviço: ${proposta.servico.titulo}`);
-    drawText(`Tipo de Vidro: ${proposta.tipoVidro.nome || '-'}`);
-    drawText(`Altura: ${proposta.altura || '-'} cm`);
-    drawText(`Largura: ${proposta.largura || '-'} cm`);
-    drawText(`Descrição: ${proposta.descricao || '-'}`);
-    drawText(`Observação: ${proposta.observacaoAdmin || '-'}`);
-    drawText(`Valor: R$ ${proposta.valor?.toFixed(2) || '-'}`);
+    const titulo = 'Proposta - BM - Vidraçaria';
+    const tituloSize = 18;
+    const tituloWidth = boldFont.widthOfTextAtSize(titulo, tituloSize);
+
+    page.drawText(titulo, {
+      x: (page.getWidth() - tituloWidth) / 2,
+      y,
+      size: tituloSize,
+      font: boldFont,
+    });
+    y -= 30;
+    drawText('Cliente: ', proposta.orcamento.nome);
+    drawText('Email: ', proposta.orcamento.email);
+    drawText('Telefone: ', proposta.orcamento.telefone);
+    drawText('Serviço: ', proposta.servico.titulo);
+    drawText('Tipo de Vidro: ', proposta.tipoVidro.nome || '-');
+    drawText('Altura: ', `${proposta.altura || '-'} cm`);
+    drawText('Largura: ', `${proposta.largura || '-'} cm`);
+    drawText('Descrição: ', proposta.descricao || '-');
+    drawText('Observação: ', proposta.observacaoAdmin || '-');
+    drawText('Valor: ', `R$ ${proposta.valor?.toFixed(2) || '-'}`);
     y -= 30;
 
     // Desenho ilustrativo

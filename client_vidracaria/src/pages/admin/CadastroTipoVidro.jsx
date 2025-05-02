@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import Modal from 'react-modal';
 import Swal from 'sweetalert2';
-import { FaEdit, FaTrash, FaPlus } from 'react-icons/fa';
+import { FaEdit, FaTrash, FaPlus, FaSave } from 'react-icons/fa';
 import { IMaskInput } from 'react-imask';
 
 Modal.setAppElement('#root');
@@ -41,7 +41,7 @@ const CadastroTipoVidro = () => {
             const payload = {
                 nome: form.nome,
                 descricao: form.descricao,
-                valorM2: parseFloat(form.valorM2.replace(',', '.')),
+                valorM2: parseFloat(form.valorM2.replace(/[^0-9,]/g, '').replace(',', '.')),
             };
 
             const res = await fetch(url, {
@@ -122,7 +122,7 @@ const CadastroTipoVidro = () => {
                             <th className="py-2 px-3">Nome</th>
                             <th className="py-2 px-3">Descrição</th>
                             <th className="py-2 px-3">Valor M²</th>
-                            <th className="py-2 px-3">Ações</th>
+                            <th className="py-2 px-3 text-center">Ações</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -134,11 +134,12 @@ const CadastroTipoVidro = () => {
                                 <td className="py-2 px-3">{t.nome}</td>
                                 <td className="py-2 px-3">{t.descricao}</td>
                                 <td className="py-2 px-3">R$ {t.valorM2.toFixed(2)}</td>
-                                <td className="py-2 px-3 flex gap-2 text-center">
-                                    <button onClick={() => editar(t)} className="text-blue-600 hover:text-blue-800 font-medium">
+                                <td className="py-2 px-3 flex gap-2 justify-center">
+                                    <button onClick={() => editar(t)} className="inline-flex items-center gap-2 px-3 py-1 text-sm bg-blue-600 text-white rounded hover:bg-blue-700 transition"
+                                        title="Editar">
                                         <FaEdit className="text-xl inline" />
                                     </button>
-                                    <button onClick={() => remover(t.id)} className="text-red-600 hover:text-red-800" title="Excluir">
+                                    <button onClick={() => remover(t.id)} className="inline-flex items-center gap-2 px-3 py-1 text-sm bg-red-600 text-white rounded hover:bg-red-700 transition" title="Excluir">
                                         <FaTrash className="text-lg" />
                                     </button>
                                 </td>
@@ -177,7 +178,7 @@ const CadastroTipoVidro = () => {
                     />
                     <IMaskInput
                         mask={Number}
-                        radix="," 
+                        radix=","
                         scale={2}
                         signed={false}
                         thousandsSeparator="."
@@ -193,7 +194,7 @@ const CadastroTipoVidro = () => {
                     />
                     <div className="flex justify-end">
                         <button type="submit" className="bg-blue-600 text-white px-6 py-2 rounded hover:bg-blue-700">
-                            Salvar
+                          <FaSave className="inline mr-2" />  Salvar
                         </button>
                     </div>
                 </form>

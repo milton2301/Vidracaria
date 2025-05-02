@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import Modal from 'react-modal';
 import Swal from 'sweetalert2';
-import { FaTrash, FaPlus } from 'react-icons/fa';
+import { FaTrash, FaPlus, FaSave } from 'react-icons/fa';
 
 Modal.setAppElement('#root');
 
@@ -88,7 +88,7 @@ const CadastroImagem = () => {
                     onClick={() => setModalAberto(true)}
                     className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded shadow inline-flex items-center"
                 >
-                    <FaPlus className='text-xl' /> Nova Imagem
+                    <FaPlus className='mr-2' /> Nova Imagem
                 </button>
             </div>
 
@@ -131,7 +131,8 @@ const CadastroImagem = () => {
                                     <td className="py-2 px-3 text-center">
                                         <button
                                             onClick={() => removerImagem(img.id)}
-                                            className="btn text-red-600 hover:text-red-800 font-medium"
+                                            className="inline-flex items-center gap-2 px-3 py-1 text-sm bg-red-600 text-white rounded hover:bg-red-700 transition"
+                                            title="Excluir"
                                         >
                                             <FaTrash className='text-xl' />
                                         </button>
@@ -185,9 +186,9 @@ const CadastroImagem = () => {
                     <div className="flex justify-end">
                         <button
                             type="submit"
-                            className="bg-blue-600 text-white px-5 py-2 rounded hover:bg-blue-700"
+                            className="bg-blue-600 flex items-center text-white px-5 py-2 rounded hover:bg-blue-700"
                         >
-                            Enviar Imagem
+                         <FaSave className='mr-2' />   Enviar Imagem
                         </button>
                     </div>
                 </form>

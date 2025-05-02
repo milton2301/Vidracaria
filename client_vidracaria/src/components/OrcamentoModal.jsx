@@ -96,6 +96,7 @@ const OrcamentoModal = ({ isOpen, onRequestClose, orcamentoBase, onSubmit }) => 
 
             if (onSubmit && orcamentoBase?.id) {
                 await onSubmit({ ...body, id: orcamentoBase.id });
+                return;
             } else {
                 const response = await fetch(url, {
                     method: 'POST',
@@ -103,6 +104,7 @@ const OrcamentoModal = ({ isOpen, onRequestClose, orcamentoBase, onSubmit }) => 
                     body: JSON.stringify(body),
                 });
             
+                console.log(response)   
                 if (response.ok) {
                     Swal.fire({
                         icon: 'success',
@@ -130,33 +132,6 @@ const OrcamentoModal = ({ isOpen, onRequestClose, orcamentoBase, onSubmit }) => 
                     });
                 }
             }            
-
-            if (response.ok) {
-                Swal.fire({
-                    icon: 'success',
-                    title: 'Sucesso!',
-                    text: orcamentoBase ? 'Proposta criada com sucesso.' : 'Orçamento enviado com sucesso.',
-                    confirmButtonColor: '#2563eb',
-                });
-
-                onRequestClose();
-                setForm({
-                    nome: '',
-                    email: '',
-                    telefone: '',
-                    servicoId: '',
-                    tipoVidro: '',
-                    altura: '',
-                    largura: '',
-                    descricao: '',
-                });
-            } else {
-                Swal.fire({
-                    icon: 'error',
-                    title: 'Erro ao enviar',
-                    text: 'Tente novamente mais tarde.',
-                });
-            }
         } catch (error) {
             console.error('Erro na requisição:', error);
             Swal.fire({
@@ -173,7 +148,7 @@ const OrcamentoModal = ({ isOpen, onRequestClose, orcamentoBase, onSubmit }) => 
             isOpen={isOpen}
             onRequestClose={onRequestClose}
             contentLabel="Solicitação de Orçamento"
-            className="max-w-xl mx-auto mt-20 bg-white rounded-lg shadow-lg p-8 outline-none"
+            className="max-w-5xl mx-auto mt-20 bg-white rounded-lg shadow-lg p-8 outline-none"
             overlayClassName="fixed inset-0 bg-blue-200 bg-opacity-60 backdrop-blur-sm flex justify-center items-start"
         >
             <h2 className="text-2xl font-bold mb-6 text-blue-700">
