@@ -12,7 +12,7 @@ const CadastroConfiguracoes = () => {
 
     const buscarConfiguracoes = async () => {
         try {
-            const res = await fetch(`${base}/configuracoes`);
+            const res = await fetch(`${import.meta.env.VITE_API_URL}/configuracoes`);
             const data = await res.json();
             setConfiguracoes(data);
         } catch (err) {
@@ -44,7 +44,7 @@ const CadastroConfiguracoes = () => {
         e.preventDefault();
 
         try {
-            const res = await fetch(`${base}/configuracoes`, {
+            const res = await fetch(`${import.meta.env.VITE_API_URL}/configuracoes`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(form),

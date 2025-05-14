@@ -12,7 +12,7 @@ const PropostasModal = ({ isOpen, onRequestClose, orcamentoId, reload }) => {
     const buscarPropostas = async () => {
         if (!orcamentoId) return;
         try {
-            const res = await fetch(`${base}/propostas/${orcamentoId}`);
+            const res = await fetch(`${import.meta.env.VITE_API_URL}/propostas/${orcamentoId}`);
             const data = await res.json();
             setPropostas(data);
         } catch (err) {
@@ -38,7 +38,7 @@ const PropostasModal = ({ isOpen, onRequestClose, orcamentoId, reload }) => {
 
         if (confirm.isConfirmed) {
             try {
-                const res = await fetch(`${base}/propostas/${id}`, { method: 'DELETE' });
+                const res = await fetch(`${import.meta.env.VITE_API_URL}/propostas/${id}`, { method: 'DELETE' });
                 if (res.ok) {
                     Swal.fire('Removido!', 'Proposta excluída com sucesso.', 'success');
                     reload?.(); // Atualiza orçamentos no componente pai
@@ -109,7 +109,7 @@ const PropostasModal = ({ isOpen, onRequestClose, orcamentoId, reload }) => {
 
         if (formValues) {
             try {
-                const res = await fetch(`${base}/propostas/${p.id}`, {
+                const res = await fetch(`${import.meta.env.VITE_API_URL}/propostas/${p.id}`, {
                     method: 'PUT',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
@@ -135,7 +135,7 @@ const PropostasModal = ({ isOpen, onRequestClose, orcamentoId, reload }) => {
 
     const gerarPdfProposta = async (id) => {
         try {
-            const res = await fetch(`${base}/propostas/${id}/pdf`);
+            const res = await fetch(`${import.meta.env.VITE_API_URL}/propostas/${id}/pdf`);
             if (!res.ok) throw new Error('Erro ao gerar PDF');
             const blob = await res.blob();
             const url = window.URL.createObjectURL(blob);

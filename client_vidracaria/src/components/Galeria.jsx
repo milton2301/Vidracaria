@@ -24,7 +24,7 @@ const Galeria = () => {
   useEffect(() => {
     const carregarImagens = async () => {
       try {
-        const res = await fetch(`${base}/imagens`);
+        const res = await fetch(`${import.meta.env.VITE_API_URL}/imagens`);
         const data = await res.json();
         const galeria = data.filter(img => img.tipo === 'Imagem Galeria');
         setImagens(galeria);
@@ -45,7 +45,7 @@ const Galeria = () => {
             {imagens.map((img, index) => (
               <div key={index} className="px-3">
                 <img
-                  src={`${base}/uploads/${img.caminho}`}
+                  src={`${import.meta.env.VITE_API_URL}/uploads/${img.caminho}`}
                   alt={img.descricao || `Projeto ${index + 1}`}
                 />
                 <div>{img.descricao}</div>

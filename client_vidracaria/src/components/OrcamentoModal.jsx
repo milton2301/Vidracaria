@@ -23,7 +23,7 @@ const OrcamentoModal = ({ isOpen, onRequestClose, orcamentoBase, onSubmit }) => 
     useEffect(() => {
         const buscarServicos = async () => {
             try {
-                const res = await fetch(`${base}/servicos`);
+                const res = await fetch(`${import.meta.env.VITE_API_URL}/servicos`);
                 const data = await res.json();
                 setServicos(data.filter(s => s.ativo));
             } catch (err) {
@@ -33,7 +33,7 @@ const OrcamentoModal = ({ isOpen, onRequestClose, orcamentoBase, onSubmit }) => 
 
         const buscarTiposVidro = async () => {
             try {
-                const res = await fetch(`${base}/tiposvidro`);
+                const res = await fetch(`${import.meta.env.VITE_API_URL}/tiposvidro`);
                 const data = await res.json();
                 setTiposVidro(data);
             } catch (err) {
@@ -82,12 +82,12 @@ const OrcamentoModal = ({ isOpen, onRequestClose, orcamentoBase, onSubmit }) => 
                 largura: form.largura ? parseFloat(form.largura.toString().replace(',', '.')) : null,
             };
 
-            let url = `${base}/orcamentos`;
+            let url = `${import.meta.env.VITE_API_URL}/orcamentos`;
             let body = dadosConvertidos;
 
             // Se for uma nova proposta, muda o endpoint e adiciona o orcamentoId
             if (orcamentoBase) {
-                url = `${base}/propostas`;
+                url = `${import.meta.env.VITE_API_URL}/propostas`;
                 body = {
                     ...dadosConvertidos,
                     orcamentoId: orcamentoBase.id,

@@ -23,7 +23,7 @@ const Usuarios = () => {
 
   const carregarUsuarios = async () => {
     try {
-      const res = await fetch(`${base}/usuarios`);
+      const res = await fetch(`${import.meta.env.VITE_API_URL}/usuarios`);
       const data = await res.json();
       setUsuarios(data);
     } catch (err) {
@@ -40,7 +40,7 @@ const Usuarios = () => {
     const novoValor = !valorAtual;
 
     try {
-      const res = await fetch(`${base}/usuarios/${id}`, {
+      const res = await fetch(`${import.meta.env.VITE_API_URL}/usuarios/${id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ [campo]: novoValor }),
@@ -71,7 +71,7 @@ const Usuarios = () => {
     e.preventDefault();
 
     try {
-      const res = await fetch(`${base}/usuarios`, {
+      const res = await fetch(`${import.meta.env.VITE_API_URL}/usuarios`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(form),

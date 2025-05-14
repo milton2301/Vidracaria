@@ -22,7 +22,7 @@ const CadastroTipoVidro = () => {
 
     const buscarTipos = async () => {
         try {
-            const res = await fetch(`${base}/tiposvidro`);
+            const res = await fetch(`${import.meta.env.VITE_API_URL}/tiposvidro`);
             const data = await res.json();
             setTipos(data);
         } catch (err) {
@@ -44,7 +44,7 @@ const CadastroTipoVidro = () => {
 
         try {
             const metodo = form.id ? 'PUT' : 'POST';
-            const url = form.id ? `${base}/tiposvidro/${form.id}` : `${base}/tiposvidro`;
+            const url = form.id ? `${import.meta.env.VITE_API_URL}/tiposvidro/${form.id}` : `${import.meta.env.VITE_API_URL}/tiposvidro`;
 
             const payload = {
                 nome: form.nome,
@@ -92,7 +92,7 @@ const CadastroTipoVidro = () => {
 
         if (confirma.isConfirmed) {
             try {
-                const res = await fetch(`${base}/tiposvidro/${id}`, {
+                const res = await fetch(`${import.meta.env.VITE_API_URL}/tiposvidro/${id}`, {
                     method: 'DELETE',
                 });
 
