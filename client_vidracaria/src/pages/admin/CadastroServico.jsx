@@ -30,7 +30,7 @@ const CadastroServico = () => {
 
     const buscarServicos = async () => {
         try {
-            const res = await fetch('http://localhost:4000/servicos');
+            const res = await fetch(`${import.meta.env.VITE_API_URL}/servicos`);
             const data = await res.json();
             setServicos(data);
         } catch (err) {
@@ -77,8 +77,8 @@ const CadastroServico = () => {
 
         const metodo = form.id ? 'PUT' : 'POST';
         const url = form.id
-            ? `http://localhost:4000/servicos/${form.id}`
-            : `http://localhost:4000/servicos`;
+            ? `${import.meta.env.VITE_API_URL}/servicos/${form.id}`
+            : `${import.meta.env.VITE_API_URL}/servicos`;
 
         const formData = new FormData();
         formData.append('titulo', form.titulo);
@@ -120,7 +120,7 @@ const CadastroServico = () => {
 
         if (confirma.isConfirmed) {
             try {
-                const res = await fetch(`http://localhost:4000/servicos/${id}`, {
+                const res = await fetch(`${import.meta.env.VITE_API_URL}/servicos/${id}`, {
                     method: 'DELETE',
                 });
 
@@ -197,7 +197,7 @@ const CadastroServico = () => {
                                     {s.icone || '-'}
                                     {s.imagem && !(s.imagem instanceof File) && (
                                         <img
-                                            src={`http://localhost:4000/uploads/${s.imagem}`}
+                                            src={`${import.meta.env.VITE_API_URL}/uploads/${s.imagem}`}
                                             alt="Imagem atual"
                                             className="w-15 h-15 object-cover mt-2 rounded shadow"
                                         />
@@ -311,7 +311,7 @@ const CadastroServico = () => {
                             />
                             {form.imagem && !(form.imagem instanceof File) && (
                                 <img
-                                    src={`http://localhost:4000/uploads/${form.imagem}`}
+                                    src={`${import.meta.env.VITE_API_URL}/uploads/${form.imagem}`}
                                     alt="Imagem atual"
                                     className="w-32 h-32 object-cover mt-2 rounded shadow"
                                 />

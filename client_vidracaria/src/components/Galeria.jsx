@@ -24,7 +24,7 @@ const Galeria = () => {
   useEffect(() => {
     const carregarImagens = async () => {
       try {
-        const res = await fetch('http://localhost:4000/imagens');
+        const res = await fetch(`${import.meta.env.VITE_API_URL}/imagens`);
         const data = await res.json();
         const galeria = data.filter(img => img.tipo === 'Imagem Galeria');
         setImagens(galeria);
