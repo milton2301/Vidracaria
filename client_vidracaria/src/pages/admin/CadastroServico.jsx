@@ -20,6 +20,14 @@ const CadastroServico = () => {
         imagem: null,
     });
 
+    // PAGINAÇÃO: início
+    const [currentPage, setCurrentPage] = useState(1);
+    const itemsPerPage = 10;
+    useEffect(() => {
+        setCurrentPage(1);
+    }, [filtro]);
+    // PAGINAÇÃO: fim
+
     const buscarServicos = async () => {
         try {
             const res = await fetch('http://localhost:4000/servicos');
@@ -36,7 +44,11 @@ const CadastroServico = () => {
 
     const handleInput = (e) => {
         const { name, value, type, checked, files } = e.target;
-        const val = type === 'checkbox' ? checked : (type === 'file' ? files[0] : value);
+        const val = type === 'checkbox'
+            ? checked
+            : type === 'file'
+                ? files[0]
+                : value;
 
         if (type === 'file' && files[0]) {
             setPreview(URL.createObjectURL(files[0]));
@@ -96,7 +108,6 @@ const CadastroServico = () => {
         setPreview(null);
     };
 
-
     const removerServico = async (id) => {
         const confirma = await Swal.fire({
             title: 'Tem certeza?',
@@ -125,7 +136,6 @@ const CadastroServico = () => {
         }
     };
 
-
     const opcoesIcones = [
         { nome: 'FaShower', label: 'Box de Banheiro' },
         { nome: 'FaDoorOpen', label: 'Portas e Janelas' },
@@ -133,6 +143,19 @@ const CadastroServico = () => {
         { nome: 'FaStore', label: 'Vitrines Comerciais' },
         { nome: 'FaCogs', label: 'Outros' },
     ];
+
+    // PAGINAÇÃO: filtro e slice
+    const servicosFiltrados = servicos.filter(
+        (s) =>
+            s.titulo.toLowerCase().includes(filtro.toLowerCase()) ||
+            s.descricao.toLowerCase().includes(filtro.toLowerCase())
+    );
+    const totalPages = Math.ceil(servicosFiltrados.length / itemsPerPage);
+    const paginatedServicos = servicosFiltrados.slice(
+        (currentPage - 1) * itemsPerPage,
+        currentPage * itemsPerPage
+    );
+    // PAGINAÇÃO: fim
 
     return (
         <div className="p-6 bg-gray-100 min-h-screen">
@@ -166,46 +189,83 @@ const CadastroServico = () => {
                         </tr>
                     </thead>
                     <tbody>
-                        {servicos
-                            .filter(
-                                (s) =>
-                                    s.titulo.toLowerCase().includes(filtro.toLowerCase()) ||
-                                    s.descricao.toLowerCase().includes(filtro.toLowerCase())
-                            )
-                            .map((s) => (
-                                <tr key={s.id} className="border-t hover:bg-gray-50">
-                                    <td className="py-2 px-3">{s.titulo}</td>
-                                    <td className="py-2 px-3">{s.descricao}</td>
-                                    <td className="py-2 px-3 font-mono text-xs text-gray-700">{s.icone || '-'}
-                                        {s.imagem && !(s.imagem instanceof File) && (
-                                            <img
-                                                src={`http://localhost:4000/uploads/${s.imagem}`}
-                                                alt="Imagem atual"
-                                                className="w-15 h-15 object-cover mt-2 rounded shadow"
-                                            />
-                                        )}
-                                    </td>
-                                    <td className="py-2 px-3">{s.ativo ? 'Sim' : 'Não'}</td>
-                                    <td className="py-2 px-3 flex gap-2 justify-center">
-                                        <button
-                                            onClick={() => abrirModalEdicao(s)}
-                                             className="inline-flex items-center gap-2 px-3 py-1 text-sm bg-blue-600 text-white rounded hover:bg-blue-700 transition"
-                                            title="Editar"
-                                        >
-                                            <FaEdit className="text-xl inline" />
-                                        </button>
-                                        <button
-                                            onClick={() => removerServico(s.id)}
-                                            className="inline-flex fle items-center gap-2 px-3 py-1 text-sm bg-red-600 text-white rounded hover:bg-red-700 transition"
-                                            title="Excluir"
-                                        >
-                                            <FaTrash className="text-lg" />
-                                        </button>
+                        {paginatedServicos.map((s) => (
+                            <tr key={s.id} className="border-t hover:bg-gray-50">
+                                <td className="py-2 px-3">{s.titulo}</td>
+                                <td className="py-2 px-3">{s.descricao}</td>
+                                <td className="py-2 px-3 font-mono text-xs text-gray-700">
+                                    {s.icone || '-'}
+                                    {s.imagem && !(s.imagem instanceof File) && (
+                                        <img
+                                            src={`http://localhost:4000/uploads/${s.imagem}`}
+                                            alt="Imagem atual"
+                                            className="w-15 h-15 object-cover mt-2 rounded shadow"
+                                        />
+                                    )}
+                                </td>
+                                <td className="py-2 px-3">{s.ativo ? 'Sim' : 'Não'}</td>
+                                <td className="py-2 px-3 flex gap-2 justify-center">
+                                    <button
+                                        onClick={() => abrirModalEdicao(s)}
+                                        className="cursor-pointer p-1 inline-flex items-center gap-2 px-3 py-1 text-sm bg-blue-600 text-white rounded hover:bg-blue-700 transition"
+                                        title="Editar"
+                                    >
+                                        <FaEdit className="text-xl inline" />
+                                    </button>
+                                    <button
+                                        onClick={() => removerServico(s.id)}
+                                        className="cursor-pointer p-1 inline-flex items-center gap-2 px-3 py-1 text-sm bg-red-600 text-white rounded hover:bg-red-700 transition"
+                                        title="Excluir"
+                                    >
+                                        <FaTrash className="text-lg" />
+                                    </button>
                                     </td>
                                 </tr>
                             ))}
                     </tbody>
                 </table>
+
+                {/* PAGINAÇÃO: controles */}
+                <div className="mt-4 flex justify-end items-center space-x-2">
+                    <button
+                        onClick={() => setCurrentPage((p) => Math.max(p - 1, 1))}
+                        disabled={currentPage === 1}
+                        className={`px-3 py-1 rounded border ${
+                            currentPage === 1
+                                ? 'text-gray-400 border-gray-200 cursor-not-allowed'
+                                : 'text-gray-700 border-gray-300 hover:bg-gray-100'
+                        }`}
+                    >
+                        ‹ Anterior
+                    </button>
+
+                    {Array.from({ length: totalPages }, (_, i) => (
+                        <button
+                            key={i + 1}
+                            onClick={() => setCurrentPage(i + 1)}
+                            className={`px-3 py-1 rounded border ${
+                                currentPage === i + 1
+                                    ? 'bg-blue-600 text-white border-blue-600'
+                                    : 'text-gray-700 border-gray-300 hover:bg-gray-100'
+                            }`}
+                        >
+                            {i + 1}
+                        </button>
+                    ))}
+
+                    <button
+                        onClick={() => setCurrentPage((p) => Math.min(p + 1, totalPages))}
+                        disabled={currentPage === totalPages}
+                        className={`px-3 py-1 rounded border ${
+                            currentPage === totalPages
+                                ? 'text-gray-400 border-gray-200 cursor-not-allowed'
+                                : 'text-gray-700 border-gray-300 hover:bg-gray-100'
+                        }`}
+                    >
+                        Próxima ›
+                    </button>
+                </div>
+                {/* PAGINAÇÃO: fim */}
             </div>
 
             {/* Modal de cadastro/edição */}
@@ -273,14 +333,11 @@ const CadastroServico = () => {
                                 className="w-full border px-3 py-2 rounded"
                             >
                                 <option value="">Selecione um ícone</option>
-                                {opcoesIcones.map((opt) => {
-                                    const Icone = FaIcons[opt.nome];
-                                    return (
-                                        <option key={opt.nome} value={opt.nome}>
-                                            {opt.label}
-                                        </option>
-                                    );
-                                })}
+                                {opcoesIcones.map((opt) => (
+                                    <option key={opt.nome} value={opt.nome}>
+                                        {opt.label}
+                                    </option>
+                                ))}
                             </select>
                             {form.icone && (
                                 <div className="mt-2 text-blue-600 flex items-center gap-2">
@@ -289,7 +346,6 @@ const CadastroServico = () => {
                             )}
                         </div>
                     </div>
-
 
                     <div className="flex justify-between items-center mt-4">
                         <label className="inline-flex items-center">

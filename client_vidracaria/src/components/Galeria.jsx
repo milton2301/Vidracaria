@@ -45,7 +45,7 @@ const Galeria = () => {
             {imagens.map((img, index) => (
               <div key={index} className="px-3">
                 <img
-                  src={`http://localhost:4000/uploads/${img.caminho}`}
+                  src={`${import.meta.env.VITE_API_URL}/uploads/${img.caminho}`}
                   alt={img.descricao || `Projeto ${index + 1}`}
                 />
                 <div>{img.descricao}</div>

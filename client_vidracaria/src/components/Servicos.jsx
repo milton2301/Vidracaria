@@ -8,7 +8,7 @@ const Servicos = () => {
   useEffect(() => {
     const buscarServicos = async () => {
       try {
-        const res = await fetch('http://localhost:4000/servicos');
+        const res = await fetch(`${import.meta.env.VITE_API_URL}/servicos`);
         const data = await res.json();
         setServicos(data);
       } catch (err) {

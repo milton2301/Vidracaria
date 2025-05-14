@@ -9,7 +9,7 @@ const Hero = () => {
   useEffect(() => {
     const carregar = async () => {
       try {
-        const res = await fetch('http://localhost:4000/configuracoes/hero');
+        const res = await fetch(`${import.meta.env.VITE_API_URL}/configuracoes/hero`);
         const data = await res.json();
         setConfig({ titulo: data?.titulo || '', subtitulo: data?.subtitulo || '' });
       } catch (err) {

@@ -12,9 +12,17 @@ const CadastroTipoVidro = () => {
     const [filtro, setFiltro] = useState('');
     const [form, setForm] = useState({ id: null, nome: '', descricao: '', valorM2: '' });
 
+    // PAGINAÇÃO: início
+    const [currentPage, setCurrentPage] = useState(1);
+    const itemsPerPage = 10;
+    useEffect(() => {
+        setCurrentPage(1);
+    }, [filtro]);
+    // PAGINAÇÃO: fim
+
     const buscarTipos = async () => {
         try {
-            const res = await fetch('http://localhost:4000/tiposvidro');
+            const res = await fetch(`${import.meta.env.VITE_API_URL}/tiposvidro`);
             const data = await res.json();
             setTipos(data);
         } catch (err) {
@@ -36,13 +44,13 @@ const CadastroTipoVidro = () => {
 
         try {
             const metodo = form.id ? 'PUT' : 'POST';
-            const url = form.id ? `http://localhost:4000/tiposvidro/${form.id}` : 'http://localhost:4000/tiposvidro';
+            const url = form.id ? `${import.meta.env.VITE_API_URL}/tiposvidro/${form.id}` : `${import.meta.env.VITE_API_URL}/tiposvidro`;
 
             const payload = {
                 nome: form.nome,
                 descricao: form.descricao,
-                valorM2: parseFloat(form.valorM2.replace(/[^0-9,]/g, '').replace(',', '.')),
-            };
+                valorM2: parseFloat(form.valorM2.replace(/[^0-9,]/g, '').replace(',', '.')) / 100,
+              };              
 
             const res = await fetch(url, {
                 method: metodo,
@@ -63,9 +71,14 @@ const CadastroTipoVidro = () => {
     };
 
     const editar = (tipo) => {
-        setForm(tipo);
+        const tipoEditado = {
+            ...tipo,
+            valorM2: prepararValorParaEdicao(tipo.valorM2)
+        };
+        setForm(tipoEditado);
         setModalAberto(true);
     };
+    
 
     const remover = async (id) => {
         const confirma = await Swal.fire({
@@ -79,7 +92,7 @@ const CadastroTipoVidro = () => {
 
         if (confirma.isConfirmed) {
             try {
-                const res = await fetch(`http://localhost:4000/tiposvidro/${id}`, {
+                const res = await fetch(`${import.meta.env.VITE_API_URL}/tiposvidro/${id}`, {
                     method: 'DELETE',
                 });
 
@@ -95,6 +108,40 @@ const CadastroTipoVidro = () => {
         }
     };
 
+    // PAGINAÇÃO: filtro e slice
+    const tiposFiltrados = tipos.filter((t) =>
+        t.nome.toLowerCase().includes(filtro.toLowerCase()) ||
+        (t.descricao?.toLowerCase().includes(filtro.toLowerCase()) ?? false)
+    );
+    const totalPages = Math.ceil(tiposFiltrados.length / itemsPerPage);
+    const paginatedTipos = tiposFiltrados.slice(
+        (currentPage - 1) * itemsPerPage,
+        currentPage * itemsPerPage
+    );
+    // PAGINAÇÃO: fim
+
+    function formatarMoeda(valor) {
+        if (!valor) return 'R$ 0,00';
+      
+        // força string e remove tudo que não é número
+        const numeros = String(valor).replace(/\D/g, '');
+      
+        const numero = parseFloat(numeros) / 100;
+      
+        return numero.toLocaleString('pt-BR', {
+          style: 'currency',
+          currency: 'BRL',
+        });
+      }
+      
+      function prepararValorParaEdicao(valorNumerico) {
+        if (!valorNumerico) return '';
+        const numeroFormatado = valorNumerico
+          .toFixed(2)             // "49.90"
+          .replace('.', ',');     // "49,90"
+        return `R$ ${numeroFormatado}`; // "R$ 49,90"
+      }
+      
     return (
         <div className="p-6 bg-gray-100 min-h-screen">
             <div className="flex justify-between items-center mb-4">
@@ -122,24 +169,20 @@ const CadastroTipoVidro = () => {
                             <th className="py-2 px-3">Nome</th>
                             <th className="py-2 px-3">Descrição</th>
                             <th className="py-2 px-3">Valor M²</th>
-                            <th className="py-2 px-3 text-center">Ações</th>
+                            <th className="py-2 px-3 text-center justify-center">Ações</th>
                         </tr>
                     </thead>
                     <tbody>
-                        {tipos.filter((t) =>
-                            t.nome.toLowerCase().includes(filtro.toLowerCase()) ||
-                            (t.descricao?.toLowerCase().includes(filtro.toLowerCase()) ?? false)
-                        ).map((t) => (
+                        {paginatedTipos.map((t) => (
                             <tr key={t.id} className="border-t hover:bg-gray-50">
                                 <td className="py-2 px-3">{t.nome}</td>
                                 <td className="py-2 px-3">{t.descricao}</td>
-                                <td className="py-2 px-3">R$ {t.valorM2.toFixed(2)}</td>
+                                <td className="py-2 px-3">{prepararValorParaEdicao(t.valorM2)}</td>
                                 <td className="py-2 px-3 flex gap-2 justify-center">
-                                    <button onClick={() => editar(t)} className="inline-flex items-center gap-2 px-3 py-1 text-sm bg-blue-600 text-white rounded hover:bg-blue-700 transition"
-                                        title="Editar">
+                                    <button onClick={() => editar(t)} className="p-1 cursor-pointer inline-flex items-center gap-2 px-3 py-1 text-sm bg-blue-600 text-white rounded hover:bg-blue-700 transition" title="Editar">
                                         <FaEdit className="text-xl inline" />
                                     </button>
-                                    <button onClick={() => remover(t.id)} className="inline-flex items-center gap-2 px-3 py-1 text-sm bg-red-600 text-white rounded hover:bg-red-700 transition" title="Excluir">
+                                    <button onClick={() => remover(t.id)} className="p-1 cursor-pointer inline-flex items-center gap-2 px-3 py-1 text-sm bg-red-600 text-white rounded hover:bg-red-700 transition" title="Excluir">
                                         <FaTrash className="text-lg" />
                                     </button>
                                 </td>
@@ -147,6 +190,45 @@ const CadastroTipoVidro = () => {
                         ))}
                     </tbody>
                 </table>
+
+                {/* PAGINAÇÃO: controles */}
+                <div className="mt-4 flex justify-end items-center space-x-2">
+                    <button
+                        onClick={() => setCurrentPage((p) => Math.max(p - 1, 1))}
+                        disabled={currentPage === 1}
+                        className={`px-3 py-1 rounded border ${currentPage === 1
+                                ? 'text-gray-400 border-gray-200 cursor-not-allowed'
+                                : 'text-gray-700 border-gray-300 hover:bg-gray-100'
+                            }`}
+                    >
+                        ‹ Anterior
+                    </button>
+
+                    {Array.from({ length: totalPages }, (_, i) => (
+                        <button
+                            key={i + 1}
+                            onClick={() => setCurrentPage(i + 1)}
+                            className={`px-3 py-1 rounded border ${currentPage === i + 1
+                                    ? 'bg-blue-600 text-white border-blue-600'
+                                    : 'text-gray-700 border-gray-300 hover:bg-gray-100'
+                                }`}
+                        >
+                            {i + 1}
+                        </button>
+                    ))}
+
+                    <button
+                        onClick={() => setCurrentPage((p) => Math.min(p + 1, totalPages))}
+                        disabled={currentPage === totalPages}
+                        className={`px-3 py-1 rounded border ${currentPage === totalPages
+                                ? 'text-gray-400 border-gray-200 cursor-not-allowed'
+                                : 'text-gray-700 border-gray-300 hover:bg-gray-100'
+                            }`}
+                    >
+                        Próxima ›
+                    </button>
+                </div>
+                {/* PAGINAÇÃO: fim */}
             </div>
 
             <Modal
@@ -176,25 +258,21 @@ const CadastroTipoVidro = () => {
                         className="w-full border px-4 py-2 rounded resize-none"
                         rows={3}
                     />
-                    <IMaskInput
-                        mask={Number}
-                        radix=","
-                        scale={2}
-                        signed={false}
-                        thousandsSeparator="."
-                        padFractionalZeros={true}
-                        normalizeZeros={true}
-                        min={0}
-                        name="valorM2"
-                        value={String(form.valorM2 || '')}
-                        onAccept={(value) => setForm({ ...form, valorM2: value })}
-                        placeholder="Valor por metro quadrado"
-                        className="w-full border px-4 py-2 rounded"
-                        required
-                    />
+                   <input
+  type="text"
+  name="valorM2"
+  value={formatarMoeda(form.valorM2)}
+  onChange={(e) => {
+    const somenteNumeros = e.target.value?.replace(/\D/g, '');
+    setForm({ ...form, valorM2: somenteNumeros });
+  }}
+  placeholder="R$ 0,00"
+  className="w-full border px-4 py-2 rounded"
+/>
+
                     <div className="flex justify-end">
                         <button type="submit" className="bg-blue-600 text-white px-6 py-2 rounded hover:bg-blue-700">
-                          <FaSave className="inline mr-2" />  Salvar
+                            <FaSave className="inline mr-2" /> Salvar
                         </button>
                     </div>
                 </form>

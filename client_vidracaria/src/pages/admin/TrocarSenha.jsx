@@ -29,7 +29,7 @@ const TrocarSenha = () => {
     if (!token) return Swal.fire('Erro', 'Usuário não autenticado.', 'error');
 
     try {
-      const res = await fetch('http://localhost:4000/trocar-senha', {
+      const res = await fetch(`${import.meta.env.VITE_API_URL}/trocar-senha`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',

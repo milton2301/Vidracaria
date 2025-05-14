@@ -12,12 +12,12 @@ const Navbar = () => {
   useEffect(() => {
     const buscarLogo = async () => {
       try {
-        const res = await fetch('http://localhost:4000/imagens');
+        const res = await fetch(`${import.meta.env.VITE_API_URL}/imagens`);
         const data = await res.json();
         const logoHeader = data.find(img => img.tipo === 'Logo Header');
         if (logoHeader) {
           setLogo({
-            url: `http://localhost:4000/uploads/${logoHeader.caminho}`,
+            url: `${import.meta.env.VITE_API_URL}/uploads/${logoHeader.caminho}`,
             descricao: logoHeader.descricao
           });
         }

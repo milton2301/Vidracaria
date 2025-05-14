@@ -13,6 +13,14 @@ const CadastroImagem = () => {
 
     const tiposImagem = ['Imagem Galeria', 'Logo Header', 'Imagem Hero'];
 
+    // PAGINAÇÃO: início
+    const [currentPage, setCurrentPage] = useState(1);
+    const itemsPerPage = 10;
+    useEffect(() => {
+        setCurrentPage(1);
+    }, [filtro]);
+    // PAGINAÇÃO: fim
+
     const buscarImagens = async () => {
         try {
             const res = await fetch('http://localhost:4000/imagens');
@@ -80,6 +88,21 @@ const CadastroImagem = () => {
         }
     };
 
+    // PAGINAÇÃO: filtro e slice
+    const imagensFiltradas = Array.isArray(imagens)
+        ? imagens.filter(
+            (img) =>
+                img.tipo.toLowerCase().includes(filtro.toLowerCase()) ||
+                img.descricao.toLowerCase().includes(filtro.toLowerCase())
+        )
+        : [];
+    const totalPages = Math.ceil(imagensFiltradas.length / itemsPerPage);
+    const paginatedImagens = imagensFiltradas.slice(
+        (currentPage - 1) * itemsPerPage,
+        currentPage * itemsPerPage
+    );
+    // PAGINAÇÃO: fim
+
     return (
         <div className="p-6 bg-gray-100 min-h-screen">
             <div className="flex justify-between items-center mb-4">
@@ -111,36 +134,72 @@ const CadastroImagem = () => {
                         </tr>
                     </thead>
                     <tbody>
-                        {Array.isArray(imagens) && imagens
-                            .filter(
-                                (img) =>
-                                    img.tipo.toLowerCase().includes(filtro.toLowerCase()) ||
-                                    img.descricao.toLowerCase().includes(filtro.toLowerCase())
-                            )
-                            .map((img) => (
-                                <tr key={img.id} className="border-t hover:bg-gray-50">
-                                    <td className="py-2 px-3 font-bold">{img.tipo}</td>
-                                    <td className="py-2 px-3">{img.descricao}</td>
-                                    <td className="py-2 px-3">
-                                        <img
-                                            src={`http://localhost:4000/uploads/${img.caminho}`}
-                                            alt={img.caminho}
-                                            className="w-24 rounded shadow-sm"
-                                        />
-                                    </td>
-                                    <td className="py-2 px-3 text-center">
-                                        <button
-                                            onClick={() => removerImagem(img.id)}
-                                            className="inline-flex items-center gap-2 px-3 py-1 text-sm bg-red-600 text-white rounded hover:bg-red-700 transition"
-                                            title="Excluir"
-                                        >
-                                            <FaTrash className='text-xl' />
-                                        </button>
-                                    </td>
-                                </tr>
-                            ))}
+                        {paginatedImagens.map((img) => (
+                            <tr key={img.id} className="border-t hover:bg-gray-50">
+                                <td className="py-2 px-3 font-bold">{img.tipo}</td>
+                                <td className="py-2 px-3">{img.descricao}</td>
+                                <td className="py-2 px-3">
+                                    <img
+                                        src={`http://localhost:4000/uploads/${img.caminho}`}
+                                        alt={img.caminho}
+                                        className="w-24 rounded shadow-sm"
+                                    />
+                                </td>
+                                <td className="py-2 px-3 text-center">
+                                    <button
+                                        onClick={() => removerImagem(img.id)}
+                                        className="cursor-pointer p-1 inline-flex items-center gap-2 px-3 py-1 text-sm bg-red-600 text-white rounded hover:bg-red-700 transition"
+                                        title="Excluir"
+                                    >
+                                        <FaTrash className='text-xl' />
+                                    </button>
+                                </td>
+                            </tr>
+                        ))}
                     </tbody>
                 </table>
+
+                {/* PAGINAÇÃO: controles */}
+                <div className="mt-4 flex justify-end items-center space-x-2">
+                    <button
+                        onClick={() => setCurrentPage((p) => Math.max(p - 1, 1))}
+                        disabled={currentPage === 1}
+                        className={`px-3 py-1 rounded border ${
+                            currentPage === 1
+                                ? 'text-gray-400 border-gray-200 cursor-not-allowed'
+                                : 'text-gray-700 border-gray-300 hover:bg-gray-100'
+                        }`}
+                    >
+                        ‹ Anterior
+                    </button>
+
+                    {Array.from({ length: totalPages }, (_, i) => (
+                        <button
+                            key={i + 1}
+                            onClick={() => setCurrentPage(i + 1)}
+                            className={`px-3 py-1 rounded border ${
+                                currentPage === i + 1
+                                    ? 'bg-blue-600 text-white border-blue-600'
+                                    : 'text-gray-700 border-gray-300 hover:bg-gray-100'
+                            }`}
+                        >
+                            {i + 1}
+                        </button>
+                    ))}
+
+                    <button
+                        onClick={() => setCurrentPage((p) => Math.min(p + 1, totalPages))}
+                        disabled={currentPage === totalPages}
+                        className={`px-3 py-1 rounded border ${
+                            currentPage === totalPages
+                                ? 'text-gray-400 border-gray-200 cursor-not-allowed'
+                                : 'text-gray-700 border-gray-300 hover:bg-gray-100'
+                        }`}
+                    >
+                        Próxima ›
+                    </button>
+                </div>
+                {/* PAGINAÇÃO: fim */}
             </div>
 
             {/* Modal de cadastro */}

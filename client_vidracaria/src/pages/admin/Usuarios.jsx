@@ -11,9 +11,19 @@ const Usuarios = () => {
   const [modalAberto, setModalAberto] = useState(false);
   const [form, setForm] = useState({ nome: '', email: '' });
 
+  // PAGINAÇÃO: início
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 10;
+
+  // Reseta página ao alterar o filtro
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [filtro]);
+  // PAGINAÇÃO: fim
+
   const carregarUsuarios = async () => {
     try {
-      const res = await fetch('http://localhost:4000/usuarios');
+      const res = await fetch(`${import.meta.env.VITE_API_URL}/usuarios`);
       const data = await res.json();
       setUsuarios(data);
     } catch (err) {
@@ -30,14 +40,18 @@ const Usuarios = () => {
     const novoValor = !valorAtual;
 
     try {
-      const res = await fetch(`http://localhost:4000/usuarios/${id}`, {
+      const res = await fetch(`${import.meta.env.VITE_API_URL}/usuarios/${id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ [campo]: novoValor }),
       });
 
       if (res.ok) {
-        Swal.fire('Sucesso', `Usuário ${campo === 'ativo' ? (novoValor ? 'ativado' : 'desativado') : (novoValor ? 'bloqueado' : 'desbloqueado')} com sucesso!`, 'success');
+        Swal.fire(
+          'Sucesso',
+          `Usuário ${campo === 'ativo' ? (novoValor ? 'ativado' : 'desativado') : (novoValor ? 'bloqueado' : 'desbloqueado')} com sucesso!`,
+          'success'
+        );
         carregarUsuarios();
       } else {
         const data = await res.json();
@@ -57,7 +71,7 @@ const Usuarios = () => {
     e.preventDefault();
 
     try {
-      const res = await fetch('http://localhost:4000/usuarios', {
+      const res = await fetch(`${import.meta.env.VITE_API_URL}/usuarios`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(form),
@@ -84,6 +98,7 @@ const Usuarios = () => {
     }
   };
 
+  // PAGINAÇÃO: filtro e slice
   const usuariosFiltrados = usuarios.filter((u) => {
     const termo = filtro.toLowerCase();
     return (
@@ -91,6 +106,13 @@ const Usuarios = () => {
       u.email.toLowerCase().includes(termo)
     );
   });
+
+  const totalPages = Math.ceil(usuariosFiltrados.length / itemsPerPage);
+  const paginatedUsuarios = usuariosFiltrados.slice(
+    (currentPage - 1) * itemsPerPage,
+    currentPage * itemsPerPage
+  );
+  // PAGINAÇÃO: fim
 
   return (
     <div className="p-6 bg-gray-100 min-h-screen">
@@ -121,11 +143,11 @@ const Usuarios = () => {
               <th className="py-2 px-4">Nome</th>
               <th className="py-2 px-4">Email</th>
               <th className="py-2 px-4">Status</th>
-              <th className="py-2 px-4">Ações</th>
+              <th className="py-2 px-4 text-center">Ações</th>
             </tr>
           </thead>
           <tbody>
-            {usuariosFiltrados.map((user) => (
+            {paginatedUsuarios.map((user) => (
               <tr key={user.id} className="border-t hover:bg-gray-50">
                 <td className="py-2 px-4">{user.nome}</td>
                 <td className="py-2 px-4">{user.email}</td>
@@ -137,7 +159,7 @@ const Usuarios = () => {
                     {user.bloqueado ? 'Bloqueado' : 'Liberado'}
                   </span>
                 </td>
-                <td className="py-2 px-4 space-x-2 flex flex-wrap">
+                <td className="py-2 px-4 space-x-2 flex flex-wrap justify-center">
                   <button
                     onClick={() => atualizarStatus(user.id, 'ativo', user.ativo)}
                     className={`inline-flex items-center gap-1 px-3 py-1 text-sm rounded ${user.ativo ? 'bg-red-600 hover:bg-red-700' : 'bg-green-600 hover:bg-green-700'} text-white`}
@@ -164,6 +186,48 @@ const Usuarios = () => {
             )}
           </tbody>
         </table>
+
+        {/* PAGINAÇÃO: controles */}
+        <div className="mt-4 flex justify-end items-center space-x-2">
+          <button
+            onClick={() => setCurrentPage((p) => Math.max(p - 1, 1))}
+            disabled={currentPage === 1}
+            className={`px-3 py-1 rounded border ${
+              currentPage === 1
+                ? 'text-gray-400 border-gray-200 cursor-not-allowed'
+                : 'text-gray-700 border-gray-300 hover:bg-gray-100'
+            }`}
+          >
+            ‹ Anterior
+          </button>
+
+          {Array.from({ length: totalPages }, (_, i) => (
+            <button
+              key={i + 1}
+              onClick={() => setCurrentPage(i + 1)}
+              className={`px-3 py-1 rounded border ${
+                currentPage === i + 1
+                  ? 'bg-blue-600 text-white border-blue-600'
+                  : 'text-gray-700 border-gray-300 hover:bg-gray-100'
+              }`}
+            >
+              {i + 1}
+            </button>
+          ))}
+
+          <button
+            onClick={() => setCurrentPage((p) => Math.min(p + 1, totalPages))}
+            disabled={currentPage === totalPages}
+            className={`px-3 py-1 rounded border ${
+              currentPage === totalPages
+                ? 'text-gray-400 border-gray-200 cursor-not-allowed'
+                : 'text-gray-700 border-gray-300 hover:bg-gray-100'
+            }`}
+          >
+            Próxima ›
+          </button>
+        </div>
+        {/* PAGINAÇÃO: fim */}
       </div>
 
       {/* Modal de cadastro */}

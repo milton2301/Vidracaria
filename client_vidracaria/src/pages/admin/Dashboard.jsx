@@ -14,10 +14,18 @@ const Dashboard = () => {
   const [orcamentoSelecionado, setOrcamentoSelecionado] = useState(null);
   const [modalPropostasAberto, setModalPropostasAberto] = useState(false);
   const [idOrcamento, setIdOrcamento] = useState([]);
+  // PAGINAÇÃO: início
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 10;
 
+  // Sempre que filtro ou status mudarem, volta para a página 1
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [filtro, statusSelecionados]);
+  // PAGINAÇÃO: fim
   const fetchOrcamentos = async () => {
     try {
-      const res = await fetch('http://localhost:4000/orcamentos');
+      const res = await fetch(`${import.meta.env.VITE_API_URL}/orcamentos`);
       if (!res.ok) throw new Error('Erro ao buscar dados');
       const data = await res.json();
       setOrcamentos(data);
@@ -30,6 +38,24 @@ const Dashboard = () => {
   useEffect(() => {
     fetchOrcamentos();
   }, []);
+
+  // PAGINAÇÃO: cálculo dos itens filtrados e páginas
+  const filteredOrcamentos = orcamentos.filter((item) => {
+    const termo = filtro.toLowerCase();
+    return (
+      item.nome.toLowerCase().includes(termo) ||
+      item.email.toLowerCase().includes(termo) ||
+      item.telefone.toLowerCase().includes(termo) ||
+      (item.servico?.titulo || '').toLowerCase().includes(termo)
+    ) && statusSelecionados.includes(item.status);
+  });
+
+  const totalPages = Math.ceil(filteredOrcamentos.length / itemsPerPage);
+  const paginatedOrcamentos = filteredOrcamentos.slice(
+    (currentPage - 1) * itemsPerPage,
+    currentPage * itemsPerPage
+  );
+  // PAGINAÇÃO: fim
 
   const abrirModalGerenciar = async (orcamento) => {
     if (orcamento.status === 'Concluído') {
@@ -45,7 +71,7 @@ const Dashboard = () => {
     // Buscar tipos de vidro
     let tiposVidro = [];
     try {
-      const res = await fetch('http://localhost:4000/tiposvidro');
+      const res = await fetch(`${import.meta.env.VITE_API_URL}/tiposvidro`);
       tiposVidro = await res.json();
     } catch (err) {
       console.error('Erro ao buscar tipos de vidro:', err);
@@ -126,7 +152,7 @@ const Dashboard = () => {
       if (result.isConfirmed) {
         try {
           console.log(result.value.valor);
-          const res = await fetch(`http://localhost:4000/orcamentos/${orcamento.id}`, {
+          const res = await fetch(`${import.meta.env.VITE_API_URL}/orcamentos/${orcamento.id}`, {
             method: 'PUT',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
@@ -172,7 +198,7 @@ const Dashboard = () => {
   const gerarPdfProposta = async (id) => {
     setLoadingPdfId(id);
     try {
-      const res = await fetch(`http://localhost:4000/orcamentos/${id}/pdf`);
+      const res = await fetch(`${import.meta.env.VITE_API_URL}/orcamentos/${id}/pdf`);
       if (!res.ok) throw new Error('Erro ao gerar PDF');
       const blob = await res.blob();
       const url = window.URL.createObjectURL(blob);
@@ -234,7 +260,7 @@ const Dashboard = () => {
               </tr>
             </thead>
             <tbody>
-              {orcamentos
+              {paginatedOrcamentos
                 .filter((item) => {
                   const termo = filtro.toLowerCase();
                   return (
@@ -299,23 +325,23 @@ const Dashboard = () => {
                         <b>Total: </b> {typeof item.valor === 'number' ? `R$ ${item.valor.toFixed(2)}` : '-'}
                       </div>
                       <div className="text-xs text-gray-500 italic">
-                        <b>Vidros: </b>{((item.altura * item.largura) * item.tipoVidro.valorM2) ? `R$ ${((item.altura * item.largura) * item.tipoVidro.valorM2).toFixed(2)}` : '-'}
+                        <b>Vidros: </b>{((item.altura * item.largura) * item.tipoVidro?.valorM2) ? `R$ ${((item.altura * item.largura) * item.tipoVidro.valorM2).toFixed(2)}` : '-'}
                       </div>
                       <div className="text-xs text-gray-500 italic">
-                        <b>Mão de obra: </b>{((item.altura * item.largura) * item.tipoVidro.valorM2) && typeof item.valor === 'number' ? `R$ ${(item.valor - ((item.altura * item.largura) * item.tipoVidro.valorM2)).toFixed(2)}` : '-'}
+                        <b>Mão de obra: </b>{((item.altura * item.largura) * item.tipoVidro?.valorM2) && typeof item.valor === 'number' ? `R$ ${(item.valor - ((item.altura * item.largura) * item.tipoVidro.valorM2)).toFixed(2)}` : '-'}
                       </div>
                     </td>
-                    <td className="py-2 px-4 flex gap-2">
+                    <td className="py-2 px-4 grid grid-cols-2 gap-2 justify-center">
                       <button
                         onClick={() => abrirModalGerenciar(item)}
-                        className="inline-flex items-center gap-2 px-3 py-1 text-sm bg-blue-600 text-white rounded hover:bg-blue-700 transition"
+                        className="justify-center cursor-pointer inline-flex items-center gap-2 px-3 py-1 text-sm bg-blue-600 text-white rounded hover:bg-blue-700 transition"
                         title="Editar orçamento"
                       >
                         <FaEdit />
                       </button>
                       <button
                         onClick={() => gerarPdfProposta(item.id)}
-                        className="inline-flex items-center gap-2 px-3 py-1 text-sm bg-green-600 text-white rounded hover:bg-green-700 transition"
+                        className="justify-center cursor-pointer inline-flex items-center gap-2 px-3 py-1 text-sm bg-green-600 text-white rounded hover:bg-green-700 transition"
                         disabled={loadingPdfId === item.id}
                         title="Gerar PDF"
                       >
@@ -323,17 +349,17 @@ const Dashboard = () => {
                       </button>
                       <button
                         onClick={() => abrirModalNovaProposta(item)}
-                        className="inline-flex items-center gap-2 px-3 py-1 text-sm bg-indigo-600 text-white rounded hover:bg-indigo-700 transition"
+                        className="justify-center cursor-pointer inline-flex items-center gap-2 px-3 py-1 text-sm bg-indigo-600 text-white rounded hover:bg-indigo-700 transition"
                         title="Gerar nova proposta"
                       >
-                        <FaPlus />
+                        <FaPlus /> 
                       </button>
                       <button
                         onClick={() => {
                           setIdOrcamento(item.id || 0);
                           setModalPropostasAberto(true);
                         }}
-                        className="inline-flex items-center gap-2 px-3 py-1 text-sm bg-gray-500 text-white rounded hover:bg-gray-600 transition"
+                        className="justify-center cursor-pointer inline-flex items-center gap-2 px-3 py-1 text-sm bg-gray-500 text-white rounded hover:bg-gray-600 transition"
                         title="Ver propostas"
                       >
                         <FaEye />
@@ -344,6 +370,47 @@ const Dashboard = () => {
             </tbody>
           </table>
         </div>
+      </div>
+
+  {/* PAGINAÇÃO: controles */}
+  <div className="mt-4 flex justify-end items-center space-x-2">
+        <button
+          onClick={() => setCurrentPage((p) => Math.max(p - 1, 1))}
+          disabled={currentPage === 1}
+          className={`px-3 py-1 rounded border ${
+            currentPage === 1
+              ? 'text-gray-400 border-gray-200 cursor-not-allowed'
+              : 'text-gray-700 border-gray-300 hover:bg-gray-100'
+          }`}
+        >
+          ‹ Anterior
+        </button>
+
+        {Array.from({ length: totalPages }, (_, i) => (
+          <button
+            key={i + 1}
+            onClick={() => setCurrentPage(i + 1)}
+            className={`px-3 py-1 rounded border ${
+              currentPage === i + 1
+                ? 'bg-blue-600 text-white border-blue-600'
+                : 'text-gray-700 border-gray-300 hover:bg-gray-100'
+            }`}
+          >
+            {i + 1}
+          </button>
+        ))}
+
+        <button
+          onClick={() => setCurrentPage((p) => Math.min(p + 1, totalPages))}
+          disabled={currentPage === totalPages}
+          className={`px-3 py-1 rounded border ${
+            currentPage === totalPages
+              ? 'text-gray-400 border-gray-200 cursor-not-allowed'
+              : 'text-gray-700 border-gray-300 hover:bg-gray-100'
+          }`}
+        >
+          Próxima ›
+        </button>
       </div>
 
       <OrcamentoModal

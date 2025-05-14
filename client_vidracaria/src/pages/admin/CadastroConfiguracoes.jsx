@@ -12,7 +12,7 @@ const CadastroConfiguracoes = () => {
 
     const buscarConfiguracoes = async () => {
         try {
-            const res = await fetch('http://localhost:4000/configuracoes');
+            const res = await fetch(`${import.meta.env.VITE_API_URL}/configuracoes`);
             const data = await res.json();
             setConfiguracoes(data);
         } catch (err) {
@@ -44,7 +44,7 @@ const CadastroConfiguracoes = () => {
         e.preventDefault();
 
         try {
-            const res = await fetch('http://localhost:4000/configuracoes', {
+            const res = await fetch(`${import.meta.env.VITE_API_URL}/configuracoes`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(form),
@@ -80,7 +80,7 @@ const CadastroConfiguracoes = () => {
                     </div>
                     <button
                         onClick={() => abrirModal('hero')}
-                        className="inline-flex items-center gap-2 px-3 py-1 text-sm bg-blue-600 text-white rounded hover:bg-blue-700 transition"
+                        className="cursor-pointer inline-flex items-center gap-2 px-3 py-1 text-sm bg-blue-600 text-white rounded hover:bg-blue-700 transition"
                         title="Editar"
                     >
                         <FaEdit className="text-xl" />
@@ -97,7 +97,7 @@ const CadastroConfiguracoes = () => {
                     </div>
                     <button
                         onClick={() => abrirModal('sobre')}
-                        className="inline-flex items-center gap-2 px-3 py-1 text-sm bg-blue-600 text-white rounded hover:bg-blue-700 transition"
+                        className="cursor-pointer inline-flex items-center gap-2 px-3 py-1 text-sm bg-blue-600 text-white rounded hover:bg-blue-700 transition"
                         title="Editar"
                     >
                         <FaEdit className="text-xl" />
