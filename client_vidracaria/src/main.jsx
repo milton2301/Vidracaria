@@ -4,7 +4,7 @@ import App from './App.jsx';
 import './index.css';
 import { BrowserRouter } from 'react-router-dom';
 
-fetch(`${import.meta.env.VITE_API_URL}/imagens`)
+fetch(`${base}/imagens`)
   .then(res => res.json())
   .then(data => {
     const logo = data.find(img => img.tipo === 'Logo Header');
@@ -12,7 +12,7 @@ fetch(`${import.meta.env.VITE_API_URL}/imagens`)
       const favicon = document.createElement('link');
       favicon.rel = 'icon';
       favicon.type = 'image/png';
-      favicon.href = `${import.meta.env.VITE_API_URL}/uploads/${logo.caminho}`;
+      favicon.href = `${base}/uploads/${logo.caminho}`;
       document.head.appendChild(favicon);
     }
   })

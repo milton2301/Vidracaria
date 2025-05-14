@@ -7,7 +7,7 @@ const Sobre = () => {
   useEffect(() => {
     const carregar = async () => {
       try {
-        const res = await fetch(`${import.meta.env.VITE_API_URL}/configuracoes/sobre`);
+        const res = await fetch(`${base}/configuracoes/sobre`);
         const data = await res.json();
         setTexto(data?.texto || '');
       } catch (err) {

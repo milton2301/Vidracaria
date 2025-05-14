@@ -23,7 +23,7 @@ const CadastroImagem = () => {
 
     const buscarImagens = async () => {
         try {
-            const res = await fetch(`${import.meta.env.VITE_API_URL}/imagens`);
+            const res = await fetch(`${base}/imagens`);
             const data = await res.json();
             setImagens(data);
         } catch (error) {
@@ -54,7 +54,7 @@ const CadastroImagem = () => {
         formData.append('imagem', form.imagem);
 
         try {
-            const res = await fetch(`${import.meta.env.VITE_API_URL}/imagens`, {
+            const res = await fetch(`${base}/imagens`, {
                 method: 'POST',
                 body: formData,
             });
@@ -83,7 +83,7 @@ const CadastroImagem = () => {
         });
 
         if (confirma.isConfirmed) {
-            await fetch(`${import.meta.env.VITE_API_URL}/imagens/${id}`, { method: 'DELETE' });
+            await fetch(`${base}/imagens/${id}`, { method: 'DELETE' });
             buscarImagens();
         }
     };
@@ -140,7 +140,7 @@ const CadastroImagem = () => {
                                 <td className="py-2 px-3">{img.descricao}</td>
                                 <td className="py-2 px-3">
                                     <img
-                                        src={`${import.meta.env.VITE_API_URL}/uploads/${img.caminho}`}
+                                        src={`${base}/uploads/${img.caminho}`}
                                         alt={img.caminho}
                                         className="w-24 rounded shadow-sm"
                                     />

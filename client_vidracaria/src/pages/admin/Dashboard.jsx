@@ -25,7 +25,7 @@ const Dashboard = () => {
   // PAGINAÇÃO: fim
   const fetchOrcamentos = async () => {
     try {
-      const res = await fetch(`${import.meta.env.VITE_API_URL}/orcamentos`);
+      const res = await fetch(`${base}/orcamentos`);
       if (!res.ok) throw new Error('Erro ao buscar dados');
       const data = await res.json();
       setOrcamentos(data);
@@ -71,7 +71,7 @@ const Dashboard = () => {
     // Buscar tipos de vidro
     let tiposVidro = [];
     try {
-      const res = await fetch(`${import.meta.env.VITE_API_URL}/tiposvidro`);
+      const res = await fetch(`${base}/tiposvidro`);
       tiposVidro = await res.json();
     } catch (err) {
       console.error('Erro ao buscar tipos de vidro:', err);
@@ -152,7 +152,7 @@ const Dashboard = () => {
       if (result.isConfirmed) {
         try {
           console.log(result.value.valor);
-          const res = await fetch(`${import.meta.env.VITE_API_URL}/orcamentos/${orcamento.id}`, {
+          const res = await fetch(`${base}/orcamentos/${orcamento.id}`, {
             method: 'PUT',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
@@ -198,7 +198,7 @@ const Dashboard = () => {
   const gerarPdfProposta = async (id) => {
     setLoadingPdfId(id);
     try {
-      const res = await fetch(`${import.meta.env.VITE_API_URL}/orcamentos/${id}/pdf`);
+      const res = await fetch(`${base}/orcamentos/${id}/pdf`);
       if (!res.ok) throw new Error('Erro ao gerar PDF');
       const blob = await res.blob();
       const url = window.URL.createObjectURL(blob);
