@@ -44,14 +44,15 @@ const uploadsDir = path.resolve('uploads');
 if (!fs.existsSync(uploadsDir)) {
   fs.mkdirSync(uploadsDir, { recursive: true });
 }
+app.get('/', (req, res) => {
+  res.send('API Vidraçaria rodando!');
+});
+
 app.use('/uploads', express.static('uploads'));
 
 app.use(cors());
 app.use(express.json());
 
-app.get('/', (req, res) => {
-  res.send('API Vidraçaria rodando!');
-});
 
 app.post('/login', async (req, res) => {
   const { email, senha } = req.body;
@@ -75,7 +76,7 @@ app.post('/login', async (req, res) => {
       return res.status(403).json({ error: 'Usuário bloqueado' });
     }
 
-    const token = jwt.sign({ id: usuario.id, email: usuario.email }, JWT_SECRET, { expiresIn: '12h' });
+    const token = jwt.sign({ id: usuario.id, email: usuario.email }, JWT_SECRET, { expiresIn: '6h' });
 
     res.json({
       token,
@@ -90,6 +91,12 @@ app.post('/login', async (req, res) => {
 
 app.post('/usuarios', async (req, res) => {
   const { nome, email } = req.body;
+
+  const authHeader = req.headers.authorization;
+
+  if (!authHeader || !authHeader.startsWith('Bearer ')) {
+    return res.status(401).json({ error: 'Token não enviado' });
+  }
 
   if (!nome || !email) {
     return res.status(400).json({ error: 'Nome e email são obrigatórios' });

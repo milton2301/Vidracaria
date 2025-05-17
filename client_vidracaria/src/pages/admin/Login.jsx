@@ -43,38 +43,60 @@ const Login = () => {
   };
   
 
-  return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-100 px-4">
-      <form
-        onSubmit={handleLogin}
-        className="bg-white shadow-lg rounded-lg p-8 w-full max-w-sm space-y-4"
-      >
-        <h2 className="text-3xl font-bold text-center text-blue-700">Login</h2>
-        <input
-          name="email"
-          type="email"
-          placeholder="E-mail"
-          value={form.email}
-          onChange={handleChange}
-          className="w-full border px-4 py-2 rounded"
-          required
-        />
-        <input
-          name="senha"
-          type="password"
-          placeholder="Senha"
-          value={form.senha}
-          onChange={handleChange}
-          className="w-full border px-4 py-2 rounded"
-          required
-        />
-        <button
-          type="submit"
-          className="w-full bg-blue-700 text-white py-2 rounded hover:bg-blue-800 transition"
-        >
-          Entrar
-        </button>
-      </form>
+   return (
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-r from-blue-100 via-white to-blue-100 px-4">
+      <div className="bg-white shadow-2xl rounded-2xl p-10 w-full max-w-md">
+        {/* LOGO ou NOME DO SISTEMA */}
+        <div className="mb-6 text-center">
+          <div className="text-4xl font-extrabold text-blue-700">BM - Vidraçaria</div>
+          <p className="text-sm text-gray-500 mt-1">Acesso ao painel administrativo</p>
+        </div>
+
+        <form onSubmit={handleLogin} className="space-y-4">
+          <div>
+            <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-1">
+              E-mail
+            </label>
+            <input
+              id="email"
+              name="email"
+              type="email"
+              placeholder="exemplo@email.com"
+              value={form.email}
+              onChange={handleChange}
+              className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              required
+            />
+          </div>
+
+          <div>
+            <label htmlFor="senha" className="block text-sm font-medium text-gray-700 mb-1">
+              Senha
+            </label>
+            <input
+              id="senha"
+              name="senha"
+              type="password"
+              placeholder="Digite sua senha"
+              value={form.senha}
+              onChange={handleChange}
+              className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              required
+            />
+          </div>
+
+          <button
+            type="submit"
+            className="w-full bg-blue-700 text-white py-2 rounded-md hover:bg-blue-800 transition duration-200 font-semibold"
+          >
+            Entrar
+          </button>
+        </form>
+
+        <div className="text-center mt-6 text-sm text-gray-500">
+          &copy; {new Date().getFullYear()} AC Solutions. Todos os direitos reservados.
+        </div>
+      </div>
     </div>
   );
 };
